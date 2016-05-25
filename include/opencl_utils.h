@@ -170,7 +170,7 @@ public:
 
   static bool compile(const std::string& hash,
                cl::Kernel& kernel,
-               const unsigned num_work_items,
+               const size_t num_work_items,
                const bool binary_mode)
   {
     auto code = loadCode(hash, binary_mode);

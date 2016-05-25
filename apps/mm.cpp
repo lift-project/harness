@@ -11,8 +11,6 @@
 #include <condition_variable>
 #include <atomic>
 #include <memory>
-#include <cstdio>
-#include <cmath>
 #include <typeinfo>
 
 // [external includes]
@@ -27,12 +25,10 @@ using Matrix = std::vector<T>;
 
 template<typename T>
 struct MMRun: public Run {
-  // input matrix size
-  std::size_t size;
 
-  std::size_t N;
   std::size_t M;
   std::size_t K;
+  std::size_t N;
 
   // list of additional buffers to allocate
   std::vector<int> extra_buffer_size;
@@ -44,13 +40,12 @@ struct MMRun: public Run {
   /**
    * Deserialize a line from the CSV
    */
-  MMRun(const std::vector<std::string>& values) {
+  MMRun(const std::vector<std::string>& values, std::size_t M,
+      std::size_t K, std::size_t N): M(M), K(K), N(N) {
     assert(values.size() > 8 && "Bad CSV format");
 
-    auto i = 0;
-
-    // input size
-    size = Csv::readInt(values[i++]);
+    // Skip input size
+    auto i = 1;
 
     // global NDRange
     glob1 = Csv::readInt(values[i++]);
@@ -91,9 +86,10 @@ struct MMRun: public Run {
     for (const auto &local: extra_local_args)
       kernel.setArg(idx++, local);
 
-    kernel.setArg(idx++, (int)size);
-    kernel.setArg(idx++, (int)size);
-    kernel.setArg(idx++, (int)size);
+    // TODO: order?
+    kernel.setArg(idx++, (int) N);
+    kernel.setArg(idx++, (int) K);
+    kernel.setArg(idx, (int) M);
   }
 
   void cleanup() override {
@@ -103,7 +99,7 @@ struct MMRun: public Run {
 };
 
 template<typename T>
-void transpose(std::vector<T>& matrix, const unsigned M, const unsigned N) {
+void transpose(std::vector<T>& matrix, const size_t M, const size_t N) {
   std::vector<T> matrixT(M * N);
 
   for(unsigned y = 0; y < M; ++y)
@@ -119,9 +115,9 @@ void transpose(std::vector<T>& matrix, const unsigned M, const unsigned N) {
 template<typename T>
 void run_harness(
     std::vector<std::shared_ptr<Run>>& all_run,
-    const unsigned M,
-    const unsigned K,
-    const unsigned N,
+    const size_t M,
+    const size_t K,
+    const size_t N,
     const std::string& matA_file,
     const std::string& matB_file,
     const std::string& gold_file,
@@ -138,7 +134,7 @@ void run_harness(
   // Compute input and output
   Matrix<T> matA(M * K);
   Matrix<T> matB(K * N);
-  Matrix<T> gold(N * N);
+  Matrix<T> gold(M * N);
 
   if(File::is_file_exist(gold_file) && File::is_file_exist(matA_file) && File::is_file_exist(matB_file) && !force ) {
     File::load_input(gold, gold_file);
@@ -159,27 +155,27 @@ void run_harness(
 
     // compute gold
     std::vector < std::thread > threads;
-    auto mmult = [&](unsigned from, unsigned to) {
+    auto mmult = [&](size_t from, size_t to) {
       T kk[N];
-      for (unsigned i=from; i<to; i++) {
-        for (unsigned j=0; j<N; j++)
+      for (auto i=from; i<to; i++) {
+        for (auto j=0; j<N; j++)
           kk[j] = 0;
 
-        for (unsigned k=0; k<K; k++)
-          for (unsigned j=0; j<N; j++)
+        for (auto k=0; k<K; k++)
+          for (auto j=0; j<N; j++)
             kk[j] += matA[i*N+k] * matB[k*K+j];
 
-        for (unsigned j=0; j<N; j++)
+        for (auto j=0; j<N; j++)
           gold[i*M+j] = kk[j];
       }
     };
 
-    unsigned nthreads = std::thread::hardware_concurrency();
+    auto nthreads = std::thread::hardware_concurrency();
     if(N % nthreads != 0)
       nthreads = 16;
     assert(N % nthreads == 0);
-    const unsigned chunk = M / nthreads;
-    for (unsigned tid = 0; tid < nthreads; tid++)
+    auto chunk = M / nthreads;
+    for (auto tid = 0; tid < nthreads; tid++)
       threads.push_back(std::thread([=]{mmult(tid*chunk, (tid+1)*chunk);}));
     for (auto & t : threads) t.join();
 
@@ -200,7 +196,7 @@ void run_harness(
   // validation function
   auto validate = [&](const std::vector<T> &output) {
     if(gold.size() != output.size()) return false;
-    for(unsigned i = 0; i < gold.size(); ++i) {
+    for(auto i = 0; i < gold.size(); ++i) {
       auto x = gold[i];
       auto y = output[i];
 
@@ -357,8 +353,8 @@ int main(int argc, char *argv[]) {
   auto all_run = Csv::init(
       [&](const std::vector<std::string>& values) -> std::shared_ptr<Run> {
         return (opt_double->get() ?
-               std::shared_ptr<Run>(new MMRun<double>(values)) :
-               std::shared_ptr<Run>(new MMRun<float>(values)));
+               std::shared_ptr<Run>(new MMRun<double>(values, M, N, K)) :
+               std::shared_ptr<Run>(new MMRun<float>(values, M, N, K)));
       });
 
   if (all_run.size() == 0) return 0;
