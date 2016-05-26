@@ -104,7 +104,7 @@ void transpose(std::vector<T>& matrix, const size_t M, const size_t N) {
 
   for(unsigned y = 0; y < M; ++y)
     for(unsigned x = 0; x < N; ++x)
-      matrixT[y*M+x] = matrix[x*N+y];
+      matrixT[y*N+x] = matrix[x*M+y];
 
   std::swap(matrixT, matrix);
 }
@@ -136,21 +136,28 @@ void run_harness(
   Matrix<T> matB(K * N);
   Matrix<T> gold(M * N);
 
+
   if(File::is_file_exist(gold_file) && File::is_file_exist(matA_file) && File::is_file_exist(matB_file) && !force ) {
+
+    std::cout << "Read matrices from file..." << std::endl;
+
     File::load_input(gold, gold_file);
     File::load_input(matA, matA_file);
     File::load_input(matB, matB_file);
   } else {
+
+    std::cout << "Initialising matrices..." << std::endl;
+
     for(unsigned y = 0; y < M; ++y)
       for(unsigned x = 0; x < K; ++x)
       {
-        matA[y*M+x] = (((y * 3 + x * 2) % 10) + 1) * 1.0f;
+        matA[y*K+x] = (((y * 3 + x * 2) % 10) + 1) * 1.0f;
       }
 
     for(unsigned y = 0; y < K; ++y)
       for(unsigned x = 0; x < N; ++x)
       {
-        matB[y*K+x] = (((y * 7 + x * 3) % 10) + 1) * 1.0f;
+        matB[y*N+x] = (((y * 7 + x * 3) % 10) + 1) * 1.0f;
       }
 
     // compute gold
@@ -163,12 +170,14 @@ void run_harness(
 
         for (auto k=0; k<K; k++)
           for (auto j=0; j<N; j++)
-            kk[j] += matA[i*N+k] * matB[k*K+j];
+            kk[j] += matA[i*K+k] * matB[k*M+j];
 
         for (auto j=0; j<N; j++)
-          gold[i*M+j] = kk[j];
+          gold[i*N+j] = kk[j];
       }
     };
+
+    std::cout << "Computing gold..." << std::endl;
 
     auto nthreads = std::thread::hardware_concurrency();
     if(N % nthreads != 0)
@@ -179,6 +188,8 @@ void run_harness(
       threads.push_back(std::thread([=]{mmult(tid*chunk, (tid+1)*chunk);}));
     for (auto & t : threads) t.join();
 
+    std::cout << "Transposing matrices..." << std::endl;
+
     if (transposeA)
       transpose(matA, M, K);
 
@@ -187,6 +198,8 @@ void run_harness(
 
     if (transposeOut)
       transpose(gold, M, N);
+
+    std::cout << "Saving to file..." << std::endl;
 
     File::save_input(gold, gold_file);
     File::save_input(matA, matA_file);
