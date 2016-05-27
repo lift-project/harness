@@ -87,9 +87,9 @@ struct MMRun: public Run {
       kernel.setArg(idx++, local);
 
     // TODO: order?
-    kernel.setArg(idx++, (int) N);
+    kernel.setArg(idx++, (int) M);
     kernel.setArg(idx++, (int) K);
-    kernel.setArg(idx, (int) M);
+    kernel.setArg(idx, (int) N);
   }
 
   void cleanup() override {
@@ -104,7 +104,7 @@ void transpose(std::vector<T>& matrix, const size_t M, const size_t N) {
 
   for(unsigned y = 0; y < M; ++y)
     for(unsigned x = 0; x < N; ++x)
-      matrixT[y*N+x] = matrix[x*M+y];
+      matrixT[x*M + y] = matrix[y*N + x];
 
   std::swap(matrixT, matrix);
 }
@@ -163,28 +163,24 @@ void run_harness(
     // compute gold
     std::vector < std::thread > threads;
     auto mmult = [&](size_t from, size_t to) {
-      T kk[N];
-      for (auto i=from; i<to; i++) {
-        for (auto j=0; j<N; j++)
-          kk[j] = 0;
+      for (auto i = from; i < to; i++) {
+        for (unsigned j = 0; j < N; j++)
+          gold[i*N + j] = 0;
 
-        for (auto k=0; k<K; k++)
-          for (auto j=0; j<N; j++)
-            kk[j] += matA[i*K+k] * matB[k*M+j];
-
-        for (auto j=0; j<N; j++)
-          gold[i*N+j] = kk[j];
+        for (unsigned j = 0; j < N; j++)
+          for (unsigned k = 0; k < K; k++)
+            gold[i*N + j] += matA[i*K + k] * matB[k*N + j];
       }
     };
 
     std::cout << "Computing gold..." << std::endl;
 
-    auto nthreads = std::thread::hardware_concurrency();
-    if(N % nthreads != 0)
-      nthreads = 16;
-    assert(N % nthreads == 0);
-    auto chunk = M / nthreads;
-    for (auto tid = 0; tid < nthreads; tid++)
+    auto n_threads = std::thread::hardware_concurrency();
+    if(M % n_threads != 0)
+      n_threads = 16;
+    assert(M % n_threads == 0);
+    auto chunk = M / n_threads;
+    for (unsigned tid = 0; tid < n_threads; tid++)
       threads.push_back(std::thread([=]{mmult(tid*chunk, (tid+1)*chunk);}));
     for (auto & t : threads) t.join();
 
@@ -209,23 +205,26 @@ void run_harness(
   // validation function
   auto validate = [&](const std::vector<T> &output) {
     if(gold.size() != output.size()) return false;
-    for(auto i = 0; i < gold.size(); ++i) {
+    for(unsigned i = 0; i < gold.size(); ++i) {
       auto x = gold[i];
       auto y = output[i];
 
       if(abs(x - y) > 0.0001f * max(abs(x), abs(y)))
         return false;
     }
+
     return true;
   };
 
   // Allocating buffers
-  const size_t buf_size = matA.size() * sizeof(T);
+  const size_t buf_size_A = matA.size() * sizeof(T);
+  const size_t buf_size_B = matB.size() * sizeof(T);
+  const size_t buf_size_C = gold.size() * sizeof(T);
   cl::Buffer matA_dev = OpenCL::alloc( CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                       buf_size, static_cast<void*>(matA.data()) );
+                                       buf_size_A, static_cast<void*>(matA.data()) );
   cl::Buffer matB_dev = OpenCL::alloc( CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                       buf_size, static_cast<void*>(matB.data()) );
-  cl::Buffer output_dev = OpenCL::alloc( CL_MEM_READ_WRITE, buf_size );
+                                       buf_size_B, static_cast<void*>(matB.data()) );
+  cl::Buffer output_dev = OpenCL::alloc( CL_MEM_READ_WRITE, buf_size_C );
 
   // multi-threaded exec
   if(threaded) {
@@ -265,7 +264,7 @@ void run_harness(
           r->getKernel().setArg(0, matA_dev);
           r->getKernel().setArg(1, matB_dev);
           r->getKernel().setArg(2, output_dev);
-          OpenCL::executeRun<T>(*r, output_dev, N * N, validate);
+          OpenCL::executeRun<T>(*r, output_dev, N * M, validate);
         }
       }
     });
@@ -285,7 +284,7 @@ void run_harness(
         r->getKernel().setArg(0, matA_dev);
         r->getKernel().setArg(1, matB_dev);
         r->getKernel().setArg(2, output_dev);
-        OpenCL::executeRun<T>(*r, output_dev, N * N, validate);
+        OpenCL::executeRun<T>(*r, output_dev, N * M, validate);
       }
     }
   }
@@ -366,8 +365,8 @@ int main(int argc, char *argv[]) {
   auto all_run = Csv::init(
       [&](const std::vector<std::string>& values) -> std::shared_ptr<Run> {
         return (opt_double->get() ?
-               std::shared_ptr<Run>(new MMRun<double>(values, M, N, K)) :
-               std::shared_ptr<Run>(new MMRun<float>(values, M, N, K)));
+               std::shared_ptr<Run>(new MMRun<double>(values, M, K, N)) :
+               std::shared_ptr<Run>(new MMRun<float>(values, M, K, N)));
       });
 
   if (all_run.size() == 0) return 0;
