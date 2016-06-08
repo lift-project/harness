@@ -12,3 +12,4 @@ std::vector<size_t> OpenCL::device_max_work_item_sizes;
 float OpenCL::timeout = 100.0f;
 bool OpenCL::local_combinations = false;
 size_t OpenCL::min_local_size = 1;
+int OpenCL::iterations = 10;

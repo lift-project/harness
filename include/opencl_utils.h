@@ -25,6 +25,7 @@ public:
   static float timeout;
   static bool local_combinations;
   static size_t min_local_size;
+  static int iterations;
 
   static void init(const unsigned platform_idx, const unsigned device_idx)
   {
@@ -63,8 +64,6 @@ public:
     using namespace std;
     static int counter = 0; counter++;
     static double best_time = timeout;
-
-    static const int iterations = 10;
 
     auto locals = (const ::size_t*) local_size;
     auto total_local_size = locals[0] * locals[1] * locals[2];

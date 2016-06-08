@@ -10,8 +10,6 @@
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
-#include <memory>
-#include <typeinfo>
 
 // [external includes]
 #include <opencl_utils.h>
@@ -30,6 +28,10 @@ struct MMRun: public Run {
   std::size_t K;
   std::size_t N;
 
+  std::size_t default_local_0;
+  std::size_t default_local_1;
+  std::size_t default_local_2;
+
   // list of additional buffers to allocate
   std::vector<int> extra_buffer_size;
   std::vector<cl::Buffer> extra_args;
@@ -41,7 +43,11 @@ struct MMRun: public Run {
    * Deserialize a line from the CSV
    */
   MMRun(const std::vector<std::string>& values, std::size_t M,
-      std::size_t K, std::size_t N): M(M), K(K), N(N) {
+      std::size_t K, std::size_t N, std::size_t default_local_0,
+      std::size_t default_local_1, std::size_t default_local_2):
+      M(M), K(K), N(N), default_local_0(default_local_0),
+      default_local_1(default_local_1), default_local_2(default_local_2) {
+
     assert(values.size() > 8 && "Bad CSV format");
 
     // Skip input size
@@ -56,6 +62,13 @@ struct MMRun: public Run {
     loc1 = Csv::readInt(values[i++]); // returns 0 if it could not parse the string to an int, e.g. for '?'.
     loc2 = Csv::readInt(values[i++]);
     loc3 = Csv::readInt(values[i++]);
+
+    if (loc1 == 0)
+      loc1 = default_local_0;
+    if (loc2 == 0)
+      loc2 = default_local_1;
+    if (loc3 == 0)
+      loc3 = default_local_2;
 
     // source hash
     hash = values[i++];
@@ -320,8 +333,16 @@ int main(int argc, char *argv[]) {
   auto opt_force = op.addOption<bool>({'f', "force", "Override cached cross validation files.", false});
   auto opt_clean = op.addOption<bool>({'c', "clean", "Clean temporary files and exit.", false});
 
+  auto opt_iterations = op.addOption<int>({'i', "iterations",
+      "The number of iterations for each experiment (default 10)", 10});
   auto opt_local_combinations = op.addOption<bool>({'l', "local-combinations",
       "Run different valid combinations of local sizes instead of letting the implementation choose if the local size is marked '?'.", false});
+  auto opt_local_0 = op.addOption<std::size_t>({0, "l0",
+      "Local size in dim 0 to use if specified as '?'", 0});
+  auto opt_local_1 = op.addOption<std::size_t>({0, "l1",
+      "Local size in dim 1 to use if specified as '?'", 0});
+  auto opt_local_2 = op.addOption<std::size_t>({0, "l2",
+      "Local size in dim 2 to use if specified as '?'", 0});
   auto opt_min_local_size = op.addOption<std::size_t>({0, "min-local",
       "The minimum local size to use when running the experiments (defaults 1).", 1});
 
@@ -334,6 +355,10 @@ int main(int argc, char *argv[]) {
   size_t N = opt_size_n->get();
   size_t M = opt_size_m->get();
   size_t K = opt_size_k->get();
+
+  size_t local_0 = opt_local_0->get();
+  size_t local_1 = opt_local_1->get();
+  size_t local_2 = opt_local_2->get();
 
   auto size_string = to_string(M) + "_" + to_string(K) + "_" + to_string(N);
 
@@ -348,6 +373,7 @@ int main(int argc, char *argv[]) {
   OpenCL::timeout = opt_timeout->get();
   OpenCL::local_combinations = opt_local_combinations->get();
   OpenCL::min_local_size = opt_min_local_size->get();
+  OpenCL::iterations = opt_iterations->get();
 
   // Result files
   auto gold_file = "/tmp/apart_mm_gold_" + size_string;
@@ -365,8 +391,11 @@ int main(int argc, char *argv[]) {
   auto all_run = Csv::init(
       [&](const std::vector<std::string>& values) -> std::shared_ptr<Run> {
         return (opt_double->get() ?
-               std::shared_ptr<Run>(new MMRun<double>(values, M, K, N)) :
-               std::shared_ptr<Run>(new MMRun<float>(values, M, K, N)));
+
+               std::shared_ptr<Run>(new MMRun<double>(values, M, K, N,
+                   local_0, local_1, local_2)) :
+               std::shared_ptr<Run>(new MMRun<float>(values, M, K, N,
+                   local_0, local_1, local_2)));
       });
 
   if (all_run.size() == 0) return 0;
