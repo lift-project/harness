@@ -100,8 +100,8 @@ struct MMRun: public Run {
       kernel.setArg(idx++, local);
 
     // TODO: order?
-    kernel.setArg(idx++, (int) M);
     kernel.setArg(idx++, (int) K);
+    kernel.setArg(idx++, (int) M);
     kernel.setArg(idx, (int) N);
   }
 
@@ -360,7 +360,7 @@ int main(int argc, char *argv[]) {
   size_t local_1 = opt_local_1->get();
   size_t local_2 = opt_local_2->get();
 
-  auto size_string = to_string(M) + "_" + to_string(K) + "_" + to_string(N);
+  auto size_string = to_string(K) + "_" + to_string(M) + "_" + to_string(N);
 
   if (M == 1024 && K == 1024 && N == 1024) {
     N = common_size;
