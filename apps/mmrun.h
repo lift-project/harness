@@ -5,6 +5,13 @@
 #ifndef EXECUTOR_MM_H
 #define EXECUTOR_MM_H
 
+#include <algorithm>
+#include <vector>
+#include <CL/cl.hpp>
+
+#include "run.h"
+#include "csv_utils.h"
+
 template<typename T>
 struct MMRun: public Run {
 
