@@ -71,8 +71,12 @@ function(add_app name)
     target_link_libraries(harness_${name} Executor pthread ${OpenCL_LIBRARIES})
 endfunction()
 
+include_directories(apps)
+
 add_app(mm)
 add_app(mv)
 add_app(gemv)
 add_app(nbody)
-#add_app(mandelbrot)
+
+enable_testing()
+add_subdirectory(test)
