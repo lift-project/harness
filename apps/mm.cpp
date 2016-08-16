@@ -17,20 +17,23 @@
 // [local includes]
 #include "options.h"
 #include "mmrun.h"
+#include "utils.h"
 
-template<typename T>
-using Matrix = std::vector<T>;
-
-template<typename T>
-void transpose(std::vector<T>& matrix, const size_t M, const size_t N) {
-  std::vector<T> matrixT(M * N);
-
-  for(unsigned y = 0; y < M; ++y)
-    for(unsigned x = 0; x < N; ++x)
-      matrixT[x*M + y] = matrix[y*N + x];
-
-  std::swap(matrixT, matrix);
-}
+template <typename T>
+void execute_run(
+    const size_t &M,
+    const size_t &N,
+    std::function<bool(const std::vector<T>&)> validate,
+    const cl::Buffer &matA_dev,
+    const cl::Buffer &matB_dev,
+    const cl::Buffer &output_dev,
+    std::shared_ptr<Run> &r
+) {
+  r->getKernel().setArg(0, matA_dev);
+  r->getKernel().setArg(1, matB_dev);
+  r->getKernel().setArg(2, output_dev);
+  OpenCL::executeRun<T>(*r, output_dev, N * M, validate);
+};
 
 /**
  * FIXME: This is a lazy copy paste of the old main with a template switch for single and double precision
@@ -60,13 +63,17 @@ void run_harness(
   Matrix<T> gold(M * N);
 
 
-  if(File::is_file_exist(gold_file) && File::is_file_exist(matA_file) && File::is_file_exist(matB_file) && !force ) {
+  if (File::is_file_exist(gold_file) &&
+      File::is_file_exist(matA_file) &&
+      File::is_file_exist(matB_file) &&
+      !force ) {
 
     std::cout << "Read matrices from file..." << std::endl;
 
     File::load_input(gold, gold_file);
     File::load_input(matA, matA_file);
     File::load_input(matB, matB_file);
+
   } else {
 
     std::cout << "Initialising matrices..." << std::endl;
@@ -126,7 +133,7 @@ void run_harness(
   }
 
   // validation function
-  auto validate = [&](const std::vector<T> &output) {
+  std::function<bool(const std::vector<T>&)> validate = [&](const std::vector<T> &output) {
     if(gold.size() != output.size()) return false;
     for(unsigned i = 0; i < gold.size(); ++i) {
       auto x = gold[i];
@@ -156,14 +163,14 @@ void run_harness(
 
     bool done = false;
     bool ready = false;
-    std::queue<Run*> ready_queue;
+    std::queue<shared_ptr<Run>> ready_queue;
 
     // compilation thread
     auto compilation_thread = std::thread([&] {
       for (auto &r: all_run) {
         if (r->compile(binary)) {
           std::unique_lock<std::mutex> locker(m);
-          ready_queue.push(&*r);
+          ready_queue.push(r);
           ready = true;
           cv.notify_one();
         }
@@ -171,7 +178,7 @@ void run_harness(
     });
 
     auto execute_thread = std::thread([&] {
-      Run *r = nullptr;
+      std::shared_ptr<Run> r = nullptr;
       while (!done) {
         {
           std::unique_lock<std::mutex> locker(m);
@@ -184,10 +191,7 @@ void run_harness(
             r = ready_queue.front();
             ready_queue.pop();
           }
-          r->getKernel().setArg(0, matA_dev);
-          r->getKernel().setArg(1, matB_dev);
-          r->getKernel().setArg(2, output_dev);
-          OpenCL::executeRun<T>(*r, output_dev, N * M, validate);
+          execute_run(M, N, validate, matA_dev, matB_dev, output_dev, r);
         }
       }
     });
@@ -203,15 +207,12 @@ void run_harness(
     // single threaded exec
   else {
     for (auto &r: all_run) {
-      if (r->compile(binary)) {
-        r->getKernel().setArg(0, matA_dev);
-        r->getKernel().setArg(1, matB_dev);
-        r->getKernel().setArg(2, output_dev);
-        OpenCL::executeRun<T>(*r, output_dev, N * M, validate);
-      }
+      if (r->compile(binary))
+        execute_run(M, N, validate, matA_dev, matB_dev, output_dev, r);
     }
   }
-};
+}
+
 
 int main(int argc, char *argv[]) {
   OptParser op("Harness for simple matrix-matrix multiply.");
