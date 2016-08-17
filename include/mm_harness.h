@@ -10,7 +10,6 @@
 #include <mutex>
 #include <condition_variable>
 #include <queue>
-#include <CL/cl.hpp>
 
 #include "run.h"
 #include "utils.h"

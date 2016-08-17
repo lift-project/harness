@@ -20,182 +20,8 @@
 
 // [local includes]
 #include "options.h"
-#include "run.h"
-
-template<typename T>
-using Matrix = std::vector<T>;
-
-template<typename T>
-struct MVRun : public Run {
-  // input matrix size
-  std::size_t size;
-
-  /**
-   * Deserialize a line from the CSV
-   */
-  MVRun(const std::vector<std::string>& values, size_t size,
-      size_t default_local_0 = 1, size_t default_local_1 = 1, size_t default_local_2 = 1):
-      Run(values, default_local_0, default_local_1, default_local_2), size(size) {}
-
-  void setup(cl::Context context) override {
-    // Allocate extra buffers
-    for(auto &size: extra_buffer_size)
-      extra_args.push_back({context, CL_MEM_READ_WRITE, (size_t) size});
-
-    // Skip the first 3 to compensate for the csv (forgot a drop(3) in scala)
-    for(unsigned i = 0; i < extra_args.size(); ++i)
-      kernel.setArg(3+i, extra_args[i]);
-
-    for (unsigned i = 0; i < extra_local_args.size(); ++i)
-      kernel.setArg((unsigned) extra_args.size() + 3 + i, extra_local_args[i]);
-
-    kernel.setArg((unsigned)extra_local_args.size()+(unsigned)extra_args.size()+3, (int)size);
-    kernel.setArg((unsigned)extra_local_args.size()+(unsigned)extra_args.size()+4, (int)size);
-  }
-};
-
-/**
- * FIXME: This is a lazy copy paste of the old main with a template switch for single and double precision
- */
-template<typename Float>
-void run_harness(
-    std::vector<std::shared_ptr<Run>>& all_run,
-    const unsigned N,
-    const std::string& mat_file,
-    const std::string& vec_file,
-    const std::string& gold_file,
-    const bool force,
-    const bool transposeIn,
-    const bool threaded,
-    const bool binary
-)
-{
-  using namespace std;
-
-  if(binary)
-    std::cout << "Using precompiled binaries" << std::endl;
-  // Compute input and output
-  Matrix<Float> mat(N*N);
-  std::vector<Float> vec(N);
-  std::vector<Float> gold(N);
-
-  if(File::is_file_exist(gold_file) && File::is_file_exist(mat_file) && File::is_file_exist(vec_file) && !force ) {
-    File::load_input(gold, gold_file);
-    File::load_input(mat, mat_file);
-    File::load_input(vec, vec_file);
-  } else {
-    for(unsigned y = 0; y < N; ++y) {
-      for (unsigned x = 0; x < N; ++x) {
-        mat[y * N + x] = (((y * 3 + x * 2) % 10) + 1) * 1.0f;
-      }
-      vec[y] = (y%10)*0.5f;
-    }
-
-    // compute gold
-    for (unsigned i=0; i<N; i++) {
-      Float Result=0.0;
-      for (unsigned j=0; j<N; j++)
-        Result+=mat[i*N+j]*vec[j];
-
-      gold[i]=Result;
-    }
-
-    if (transposeIn) {
-      std::vector<Float> Tmat(N*N);
-      for(unsigned y = 0; y < N; ++y)
-        for(unsigned x = 0; x < N; ++x)
-          Tmat[y*N+x] = mat[x*N+y];
-      std::swap(Tmat, mat);
-    }
-
-    File::save_input(gold, gold_file);
-    File::save_input(mat, mat_file);
-    File::save_input(vec, vec_file);
-  }
-
-  // validation function
-  auto validate = [&](const std::vector<Float> &output) {
-    if(gold.size() != output.size()) return false;
-    for(unsigned i = 0; i < gold.size(); ++i) {
-      auto x = gold[i];
-      auto y = output[i];
-
-      if(abs(x - y) > 0.001f * max(abs(x), abs(y))) {
-        cout << "at " << i << ": " << x << "=/=" << y <<std::endl;
-        return false;
-      }
-    }
-    return true;
-  };
-
-  // Allocating buffers
-  const size_t buf_size = mat.size() * sizeof(Float);
-  cl::Buffer mat_dev = OpenCL::alloc( CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                      buf_size, static_cast<void*>(mat.data()) );
-  cl::Buffer vec_dev = OpenCL::alloc( CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                      N*sizeof(Float), static_cast<void*>(vec.data()) );
-  cl::Buffer output_dev = OpenCL::alloc( CL_MEM_READ_WRITE, N*sizeof(Float) );
-
-  // multi-threaded exec
-  if(threaded) {
-    std::mutex m;
-    std::condition_variable cv;
-
-    bool done = false;
-    bool ready = false;
-    std::queue<Run*> ready_queue;
-
-    // compilation thread
-    auto compilation_thread = std::thread([&] {
-      for (auto &r: all_run) {
-        if (r->compile(binary)) {
-          std::unique_lock<std::mutex> locker(m);
-          ready_queue.push(&*r);
-          ready = true;
-          cv.notify_one();
-        }
-      }
-    });
-
-    auto execute_thread = std::thread([&] {
-      Run *r = nullptr;
-      while (!done) {
-        {
-          std::unique_lock<std::mutex> locker(m);
-          while (!ready && !done) cv.wait(locker);
-        }
-
-        while (!ready_queue.empty()) {
-          {
-            std::unique_lock<std::mutex> locker(m);
-            r = ready_queue.front();
-            ready_queue.pop();
-          }
-          r->getKernel().setArg(0, mat_dev);
-          r->getKernel().setArg(1, vec_dev);
-          r->getKernel().setArg(2, output_dev);
-          OpenCL::executeRun<Float>(*r, output_dev, N, validate);
-        }
-      }
-    });
-
-    compilation_thread.join();
-    done = true;
-    cv.notify_one();
-    execute_thread.join();
-  }
-    // single threaded exec
-  else {
-    for (auto &r: all_run) {
-      if (r->compile(binary)) {
-        r->getKernel().setArg(0, mat_dev);
-        r->getKernel().setArg(1, vec_dev);
-        r->getKernel().setArg(2, output_dev);
-        OpenCL::executeRun<Float>(*r, output_dev, N, validate);
-      }
-    }
-  }
-};
+#include "mvrun.h"
+#include "mv_harness.h"
 
 int main(int argc, char *argv[]) {
   OptParser op("Harness for simple matrix-vector multiply.");
@@ -245,21 +71,12 @@ int main(int argc, char *argv[]) {
   OpenCL::init(opt_platform->get(), opt_device->get());
 
   // run the harness
-  if (opt_double->get())
-    run_harness<double>(
-        all_run, N,
-        mat_file, vec_file, gold_file,
-        opt_force->get(),
-        opt_transpose->get(),
-        opt_threaded->get(), opt_binary->get()
-    );
-  else
-    run_harness<float>(
-        all_run, N,
-        mat_file, vec_file, gold_file,
-        opt_force->get(),
-        opt_transpose->get(),
-        opt_threaded->get(), opt_binary->get()
-    );
+  run_harness(
+      all_run, N,
+          mat_file, vec_file, gold_file,
+          opt_force->get(),
+          opt_transpose->get(),
+          opt_threaded->get(), opt_binary->get()
+  );
 }
 
