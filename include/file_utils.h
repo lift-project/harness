@@ -32,6 +32,11 @@ class File {
   }
 
 public:
+
+  static std::string get_timing_filename() {
+    return timing_filename;
+  }
+
   static void set_size(std::size_t size)
   {
     const auto size_str = std::to_string(size);

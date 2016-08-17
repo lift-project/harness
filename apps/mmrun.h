@@ -90,7 +90,7 @@ struct MMRun: public Run {
     for (const auto &local: extra_local_args)
       kernel.setArg(idx++, local);
 
-    // TODO: order?
+    // Arguments in alphabetic order
     kernel.setArg(idx++, (int) K);
     kernel.setArg(idx++, (int) M);
     kernel.setArg(idx, (int) N);
