@@ -1,3 +1,52 @@
+#ifndef Tuple_float_float_DEFINED
+#define Tuple_float_float_DEFINED
+typedef struct {
+  float _0;
+  float _1;
+} Tuple_float_float;
+#endif
+
+#ifndef Tuple_float_int_int_DEFINED
+#define Tuple_float_int_int_DEFINED
+typedef struct {
+  float _0;
+  int _1;
+  int _2;
+} Tuple_float_int_int;
+#endif
+
+#ifndef Tuple_float_int_int_DEFINED
+#define Tuple_float_int_int_DEFINED
+typedef struct {
+  float _0;
+  int _1;
+  int _2;
+} Tuple_float_int_int;
+#endif
+#ifndef Tuple_float_Tuple_float_int_int_DEFINED
+#define Tuple_float_Tuple_float_int_int_DEFINED
+typedef struct {
+  float _0;
+  Tuple_float_int_int _1;
+} Tuple_float_Tuple_float_int_int;
+#endif
+
+float update(float dist, Tuple_float_float pair){
+  typedef Tuple_float_float Tuple;
+  
+  { return dist + (pair._0 - pair._1) * (pair._0 - pair._1); }
+}
+Tuple_float_int_int test(float dist, Tuple_float_int_int tuple){
+  typedef Tuple_float_int_int Tuple;
+  
+  {float min_dist = tuple._0;int i          = tuple._1;int index      = tuple._2;if (dist < min_dist) {  Tuple t = {dist, i + 1, i};  return t;} else {  Tuple t = {min_dist, i + 1, index};  return t;}}
+}
+int select_(Tuple_float_int_int tuple){
+  typedef Tuple_float_int_int Tuple;
+  
+  { return tuple._2; }
+}
+
 kernel void KERNEL(const global float* restrict v__19, const global float* restrict v__20, global int* v__32, int v_C_1, int v_F_2, int v_P_0){ 
 #ifndef WORKGROUP_GUARD
 #define WORKGROUP_GUARD

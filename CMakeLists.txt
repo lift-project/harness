@@ -77,6 +77,7 @@ add_app(mm)
 add_app(mv)
 add_app(gemv)
 add_app(nbody)
+add_app(kmeans)
 
 enable_testing()
 add_subdirectory(test)

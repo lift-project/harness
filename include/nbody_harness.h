@@ -53,7 +53,7 @@ void run_harness(
   } else {
 
     std::default_random_engine generator;
-    std::uniform_real_distribution<T> distribution(0.0,1.0);
+    std::uniform_real_distribution<T> distribution(0.0,10.0);
 
     std::cout << "Initialising input data..." << std::endl;
 
