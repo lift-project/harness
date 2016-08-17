@@ -1,8 +1,7 @@
+set(TEST_SOURCES
+    test_utils.cpp
+    test_matmul.cpp)
 
-macro (add_testcase name)
-    add_executable (${name} ${name}.cpp test_utils.cpp test_matmul.cpp)
-    target_link_libraries (${name} libgtest Executor ${OpenCL_LIBRARY})
-    add_test (${name} ${name})
-endmacro()
-
-add_testcase(test_all)
+add_executable (test_all test_all.cpp ${TEST_SOURCES})
+target_link_libraries (test_all libgtest Executor ${OpenCL_LIBRARY})
+add_test (test_all test_all)
