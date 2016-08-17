@@ -30,57 +30,17 @@ struct MVRun : public Run {
   // input matrix size
   std::size_t size;
 
-  // list of additional buffers to allocate
-  std::vector<int> extra_buffer_size;
-  std::vector<cl::Buffer> extra_args;
-
-  // list of additional local buffers to allocate
-  std::vector<int> extra_local_buffer_size;
-  std::vector<cl::LocalSpaceArg> extra_local_args;
-
   /**
    * Deserialize a line from the CSV
    */
-  MVRun(const std::vector<std::string>& values) {
-    assert(values.size() > 8 && "Bad CSV format");
-
-    // input size
-    size = Csv::readInt(values[0]);
-
-    // global NDRange
-    glob1 = Csv::readInt(values[1]);
-    glob2 = Csv::readInt(values[2]);
-    glob3 = Csv::readInt(values[3]);
-
-    // local NDRange
-    loc1 = Csv::readInt(values[4]);
-    loc2 = Csv::readInt(values[5]);
-    loc3 = Csv::readInt(values[6]);
-
-    // source hash
-    hash = values[7];
-    hash.erase(std::remove_if(std::begin(hash), std::end(hash), isspace), std::end(hash));
-
-    // number of temporary buffers to allocate and their sizes
-    auto num_buf = Csv::readInt(values[8]);
-    for(unsigned i = 9; i < 9 + num_buf; ++i) {
-      extra_buffer_size.push_back((int)Csv::readInt(values[i]));
-    }
-
-    // number of local buffers to allocate and their sizes
-    auto num_local = Csv::readInt(values[9+num_buf]);
-    for (unsigned i = 10 + (unsigned) num_buf; i < 10 + num_buf + num_local; ++i) {
-      extra_local_buffer_size.push_back((int)Csv::readInt(values[i]));
-    }
-  }
+  MVRun(const std::vector<std::string>& values, size_t size,
+      size_t default_local_0 = 1, size_t default_local_1 = 1, size_t default_local_2 = 1):
+      Run(values, default_local_0, default_local_1, default_local_2), size(size) {}
 
   void setup(cl::Context context) override {
     // Allocate extra buffers
     for(auto &size: extra_buffer_size)
       extra_args.push_back({context, CL_MEM_READ_WRITE, (size_t) size});
-
-    for (auto &size: extra_local_buffer_size)
-      extra_local_args.push_back({(size_t) size});
 
     // Skip the first 3 to compensate for the csv (forgot a drop(3) in scala)
     for(unsigned i = 0; i < extra_args.size(); ++i)
@@ -91,11 +51,6 @@ struct MVRun : public Run {
 
     kernel.setArg((unsigned)extra_local_args.size()+(unsigned)extra_args.size()+3, (int)size);
     kernel.setArg((unsigned)extra_local_args.size()+(unsigned)extra_args.size()+4, (int)size);
-  }
-
-  void cleanup() override {
-    extra_buffer_size.clear();
-    kernel = cl::Kernel();
   }
 };
 
@@ -281,8 +236,8 @@ int main(int argc, char *argv[]) {
   auto all_run = Csv::init(
       [&](const std::vector<std::string>& values) -> std::shared_ptr<Run> {
         return (opt_double->get() ?
-               std::shared_ptr<Run>(new MVRun<double>(values)) :
-               std::shared_ptr<Run>(new MVRun<float>(values)));
+               std::shared_ptr<Run>(new MVRun<double>(values, N)) :
+               std::shared_ptr<Run>(new MVRun<float>(values, N)));
       });
   if (all_run.size() == 0) return 0;
 
