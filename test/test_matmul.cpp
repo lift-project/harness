@@ -155,8 +155,3 @@ TEST_F(MMTest, RunRectangularTransposeB) {
 
   EXPECT_TRUE(File::is_file_exist(timing_filename));
 }
-
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
