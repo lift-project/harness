@@ -55,6 +55,8 @@ add_app(mv)
 add_app(gemv)
 add_app(nbody)
 add_app(kmeans)
+add_app(stencil)
+add_app(stencilNoPad)
 
 enable_testing()
 add_subdirectory(test)
