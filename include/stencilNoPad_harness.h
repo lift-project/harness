@@ -31,6 +31,7 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t N,
 	std::vector<float> gold(N - 2);
 
 	if (File::is_file_exist(gold_file) && File::is_file_exist(grid_file)) {
+		std::cout << "use existing gold" << std::endl;
 		File::load_input(gold, gold_file);
 		File::load_input(grid, grid_file);
 	} else {
@@ -39,9 +40,10 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t N,
 		}
 
 		// compute gold
+		std::cout << "compute gold" << std::endl;
 		for (unsigned i = 1; i < N - 1; i++) {
-			float sum = 0.0;
-			for (unsigned j = -1; j < 2; j++) {
+			float sum = 0.0f;
+			for (int j = -1; j < 2; j++) {
 				sum += grid[i + j];
 			}
 
@@ -111,7 +113,9 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t N,
 					}
 					r->getKernel().setArg(0, grid_dev);
 					r->getKernel().setArg(1, output_dev);
-					OpenCL::executeRun<float>(*r, output_dev, N, validate);
+					r->getKernel().setArg(2, static_cast<int>(N));
+					OpenCL::executeRun<float>(*r, output_dev, (N - 2),
+								  validate);
 				}
 			}
 		});
@@ -127,7 +131,8 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t N,
 			if (r->compile(binary)) {
 				r->getKernel().setArg(0, grid_dev);
 				r->getKernel().setArg(1, output_dev);
-				OpenCL::executeRun<float>(*r, output_dev, N, validate);
+				r->getKernel().setArg(2, static_cast<int>(N));
+				OpenCL::executeRun<float>(*r, output_dev, (N - 2), validate);
 			}
 		}
 	}
