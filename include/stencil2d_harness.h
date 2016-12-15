@@ -27,31 +27,39 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t N,
 
 	if (binary) std::cout << "Using precompiled binaries" << std::endl;
 	// Compute input and output
-	std::vector<float> grid(N);
-	std::vector<float> gold(N);
+	Matrix<float> grid(N * N);
+	Matrix<float> gold(N * N);
 
 	if (File::is_file_exist(gold_file) && File::is_file_exist(grid_file)) {
-		std::cout << "use existing gold" << std::endl;
 		File::load_input(gold, gold_file);
 		File::load_input(grid, grid_file);
 	} else {
 		for (unsigned y = 0; y < N; ++y) {
-			grid[y] = (y % 10) * 0.5f;
+			for (unsigned x = 0; x < N; ++x) {
+				grid[y * N + x] = (((y * 3 + x * 2) % 10) + 1) * 1.0f;
+			}
 		}
 
 		// compute gold
-		std::cout << "compute gold" << std::endl;
-		for (unsigned i = 0; i < N; i++) {
-			float sum = 0.0f;
-			for (int j = -1; j < 2; j++) {
-				// clamp boundary
-				int pos = i + j;
-				pos = max(0, pos);
-				pos = min(static_cast<int>(N - 1), pos);
-				sum += grid[pos];
-			}
+		for (unsigned y = 0; y < N; y++) {
+			for (unsigned x = 0; x < N; x++) {
+				float sum = 0.0f;
+				for (unsigned i = -1; i < 2; i++) {
+					for (unsigned j = -1; j < 2; j++) {
+						int posX = (x + i);
+						int posY = (y + j);
+						// clamp boundary
+						// todo fix
+						// posX = std::min(posX, N);
+						// posY = std::min(posY, N);
+						// posX = std::max(posX, 0);
+						// posY = std::max(posY, 0);
 
-			gold[i] = sum;
+						sum += grid[posY * N + posX];
+					}
+				}
+				gold[y * N + x] = sum;
+			}
 		}
 
 		File::save_input(gold, gold_file);
@@ -117,7 +125,6 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t N,
 					}
 					r->getKernel().setArg(0, grid_dev);
 					r->getKernel().setArg(1, output_dev);
-					r->getKernel().setArg(2, static_cast<int>(N));
 					OpenCL::executeRun<float>(*r, output_dev, N, validate);
 				}
 			}
@@ -134,7 +141,6 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t N,
 			if (r->compile(binary)) {
 				r->getKernel().setArg(0, grid_dev);
 				r->getKernel().setArg(1, output_dev);
-				r->getKernel().setArg(2, static_cast<int>(N));
 				OpenCL::executeRun<float>(*r, output_dev, N, validate);
 			}
 		}

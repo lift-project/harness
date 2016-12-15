@@ -24,7 +24,7 @@
 #include "stencilrun.h"
 
 int main(int argc, char *argv[]) {
-	OptParser op("Harness for simple 1D stencil.");
+	OptParser op("Harness for simple stencil.");
 
 	auto opt_platform =
 	    op.addOption<unsigned>({'p', "platform", "OpenCL platform index (default 0).", 0});

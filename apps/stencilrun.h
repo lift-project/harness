@@ -25,6 +25,7 @@ template <typename T> struct StencilRun : public Run {
 		for (auto &size : extra_buffer_size)
 			extra_args.push_back({context, CL_MEM_READ_WRITE, (size_t)size});
 
+		/*
 		// Skip the first 3 to compensate for the csv (forgot a drop(3) in scala)
 		for (unsigned i = 0; i < extra_args.size(); ++i)
 			kernel.setArg(3 + i, extra_args[i]);
@@ -36,6 +37,7 @@ template <typename T> struct StencilRun : public Run {
 			      (int)size);
 		kernel.setArg((unsigned)extra_local_args.size() + (unsigned)extra_args.size() + 4,
 			      (int)size);
+						*/
 	}
 };
 

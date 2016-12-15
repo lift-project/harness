@@ -56,6 +56,7 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t N,
 
 	// validation function
 	auto validate = [&](const std::vector<float> &output) {
+		cout << "validate" << endl;
 		if (gold.size() != output.size()) return false;
 		for (unsigned i = 0; i < gold.size(); ++i) {
 			auto x = gold[i];
@@ -73,7 +74,7 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t N,
 	const size_t buf_size = grid.size() * sizeof(float);
 	cl::Buffer grid_dev = OpenCL::alloc(CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, buf_size,
 					    static_cast<void *>(grid.data()));
-	cl::Buffer output_dev = OpenCL::alloc(CL_MEM_READ_WRITE, (N - 2) * sizeof(float));
+	cl::Buffer output_dev = OpenCL::alloc(CL_MEM_READ_WRITE, (N - 1) * sizeof(float));
 
 	// multi-threaded exec
 	if (threaded) {
