@@ -57,6 +57,7 @@ add_app(nbody)
 add_app(kmeans)
 add_app(stencil)
 add_app(stencilNoPad)
+add_app(convolution)
 
 enable_testing()
 add_subdirectory(test)
