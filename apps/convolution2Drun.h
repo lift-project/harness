@@ -2,24 +2,25 @@
 // Created by Bastian Hagedorn
 //
 
-#ifndef EXECUTOR_CONVOLUTIONRUN_H
-#define EXECUTOR_CONVOLUTIONRUN_H
+#ifndef EXECUTOR_CONVOLUTION2DRUN_H
+#define EXECUTOR_CONVOLUTION2DRUN_H
 
 #include <cstddef>
 
 #include "run.h"
 
-template <typename T> struct ConvolutionRun : public Run {
-	// input size
-	std::size_t size;
+struct Convolution2DRun : public Run {
+	// input matrix size
+	std::size_t M;
+	std::size_t N;
 
 	/**
 	 * Deserialize a line from the CSV
 	 */
-	ConvolutionRun(const std::vector<std::string> &values, size_t size,
-		       size_t default_local_0 = 1, size_t default_local_1 = 1,
-		       size_t default_local_2 = 1)
-	    : Run(values, default_local_0, default_local_1, default_local_2), size(size) {}
+	Convolution2DRun(const std::vector<std::string> &values, size_t M, size_t N,
+			 size_t default_local_0 = 1, size_t default_local_1 = 1,
+			 size_t default_local_2 = 1)
+	    : Run(values, default_local_0, default_local_1, default_local_2), M(M), N(N) {}
 
 	void setup(cl::Context context) override {
 		// Allocate extra buffers
@@ -42,4 +43,4 @@ template <typename T> struct ConvolutionRun : public Run {
 	}
 };
 
-#endif // EXECUTOR_CONVOLUTIONRUN_H
+#endif // EXECUTOR_CONVOLUTION2DRUN_H
