@@ -147,12 +147,40 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 						r = ready_queue.front();
 						ready_queue.pop();
 					}
-					r->getKernel().setArg(0, grid_dev);
-					r->getKernel().setArg(1, weights_dev);
-					r->getKernel().setArg(2, output_dev);
-					r->getKernel().setArg(3, static_cast<int>(M));
-					r->getKernel().setArg(4, static_cast<int>(N));
-					OpenCL::executeRun<float>(*r, output_dev, M * N, validate);
+					// need to generate extra kernel args
+					if (r->extra_local_args.size() >= 1) {
+						unsigned i = 0;
+						r->getKernel().setArg(i++, grid_dev);
+						r->getKernel().setArg(i++, weights_dev);
+						r->getKernel().setArg(i++, output_dev);
+						for (const auto &local_arg : r->extra_local_args)
+							r->getKernel().setArg(i++, local_arg);
+						r->getKernel().setArg(i++, static_cast<int>(M));
+						r->getKernel().setArg(i++, static_cast<int>(N));
+
+						auto numWorkItems = r->loc1 * r->loc2 * r->loc3;
+						bool compatible = OpenCL::compatibility_checks(
+						    r->getKernel(), numWorkItems, r->sum_local);
+						if (!compatible) {
+							std::cout
+							    << "[ABORT] Manual check failed - too "
+							       "much local memory required\n";
+							// right way to terminate thread?
+							return -1;
+						}
+
+						OpenCL::executeRun<float>(*r, output_dev, M * N,
+									  validate);
+
+					} else {
+						r->getKernel().setArg(0, grid_dev);
+						r->getKernel().setArg(1, weights_dev);
+						r->getKernel().setArg(2, output_dev);
+						r->getKernel().setArg(3, static_cast<int>(M));
+						r->getKernel().setArg(4, static_cast<int>(N));
+						OpenCL::executeRun<float>(*r, output_dev, M * N,
+									  validate);
+					}
 				}
 			}
 		});
@@ -166,12 +194,27 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 	else {
 		for (auto &r : all_run) {
 			if (r->compile(binary)) {
-				r->getKernel().setArg(0, grid_dev);
-				r->getKernel().setArg(1, weights_dev);
-				r->getKernel().setArg(2, output_dev);
-				r->getKernel().setArg(3, static_cast<int>(M));
-				r->getKernel().setArg(4, static_cast<int>(N));
-				OpenCL::executeRun<float>(*r, output_dev, M * N, validate);
+				if (r->extra_local_args.size() >= 1) {
+					std::cout << "[DEBUG] We need extra buffers here! : "
+						  << r->extra_local_args.size() << " : "
+						  << r->extra_local_args.front().size_
+						  << " : max 32768 ||" << r->hash << std::endl;
+					r->getKernel().setArg(0, grid_dev);
+					r->getKernel().setArg(1, weights_dev);
+					r->getKernel().setArg(2, output_dev);
+					r->getKernel().setArg(3, r->extra_local_args.front());
+					r->getKernel().setArg(4, static_cast<int>(M));
+					r->getKernel().setArg(5, static_cast<int>(N));
+					OpenCL::executeRun<float>(*r, output_dev, M * N, validate);
+
+				} else {
+					r->getKernel().setArg(0, grid_dev);
+					r->getKernel().setArg(1, weights_dev);
+					r->getKernel().setArg(2, output_dev);
+					r->getKernel().setArg(3, static_cast<int>(M));
+					r->getKernel().setArg(4, static_cast<int>(N));
+					OpenCL::executeRun<float>(*r, output_dev, M * N, validate);
+				}
 			}
 		}
 	}

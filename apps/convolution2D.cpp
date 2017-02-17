@@ -57,6 +57,8 @@ int main(int argc, char *argv[]) {
 	const size_t M = opt_size_m->get();
 	const size_t N = opt_size_n->get();
 
+	// size string used for all .csv files,
+	// e.g., exec_[size_string].csv
 	auto size_string = to_string(M) + "_" + to_string(N);
 	if (M == N) {
 		size_string = to_string(M);
@@ -77,8 +79,8 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 
-	// === Loading CSV file ===
-	auto all_run =
+	// === Loading exec CSV file ===
+	std::vector<std::shared_ptr<Run>> all_run =
 	    Csv::init([&](const std::vector<std::string> &values) -> std::shared_ptr<Run> {
 		    return std::shared_ptr<Run>(new Convolution2DRun(values, M, N));
 	    });
