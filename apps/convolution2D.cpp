@@ -30,6 +30,8 @@ int main(int argc, char *argv[]) {
 	    op.addOption<unsigned>({'p', "platform", "OpenCL platform index (default 0).", 0});
 	auto opt_device =
 	    op.addOption<unsigned>({'d', "device", "OpenCL device index (default 0).", 0});
+	auto opt_iterations = op.addOption<unsigned>(
+	    {'i', "iterations", "Execute each kernel 'iterations' times (default 10).", 10});
 
 	auto opt_size_m =
 	    op.addOption<std::size_t>({'m', "size-m", "M - number of rows (default 1024).", 1024});
@@ -87,7 +89,7 @@ int main(int argc, char *argv[]) {
 	if (all_run.size() == 0) return 0;
 
 	// === OpenCL init ===
-	OpenCL::init(opt_platform->get(), opt_device->get());
+	OpenCL::init(opt_platform->get(), opt_device->get(), opt_iterations->get());
 
 	// run the harness
 	run_harness(all_run, M, N, grid_file, gold_file, opt_force->get(), opt_threaded->get(),

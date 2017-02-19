@@ -27,7 +27,9 @@ class OpenCL {
 	static size_t min_local_size;
 	static int iterations;
 
-	static void init(const unsigned platform_idx, const unsigned device_idx) {
+	static void init(const unsigned platform_idx, const unsigned device_idx,
+			 const unsigned iters = 10) {
+		iterations = iters;
 		std::vector<cl::Platform> platform;
 		cl::Platform::get(&platform);
 
