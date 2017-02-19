@@ -73,6 +73,7 @@ int main(int argc, char *argv[]) {
 	// temporary files
 	std::string gold_file = "/tmp/lift_convolution2D_gold_" + size_string;
 	std::string grid_file = "/tmp/lift_convolution2D_grid_" + size_string;
+	std::string weights_file = "/tmp/lift_convolution2D_weights_" + size_string;
 
 	if (opt_clean->get()) {
 		std::cout << "Cleaning..." << std::endl;
@@ -92,6 +93,6 @@ int main(int argc, char *argv[]) {
 	OpenCL::init(opt_platform->get(), opt_device->get(), opt_iterations->get());
 
 	// run the harness
-	run_harness(all_run, M, N, grid_file, gold_file, opt_force->get(), opt_threaded->get(),
-		    opt_binary->get());
+	run_harness(all_run, M, N, grid_file, gold_file, weights_file, opt_force->get(),
+		    opt_threaded->get(), opt_binary->get());
 }

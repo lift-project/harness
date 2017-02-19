@@ -59,6 +59,18 @@ class OpenCL {
 			       std::size_t output_size,
 			       std::function<bool(const std::vector<T> &)> validation) {
 		using namespace std;
+
+		// check (again) for compatibility
+		auto numWorkItems = run.loc1 * run.loc2 * run.loc3;
+		bool compatible =
+		    OpenCL::compatibility_checks(run.getKernel(), numWorkItems, run.sum_local);
+		if (!compatible) {
+			std::cout << "[ABORT] Compatibility check failed\n";
+			// right way to terminate thread?
+			// std::terminate();
+			exit(-1);
+		}
+
 		static int counter = 0;
 		counter++;
 		static double best_time = timeout;

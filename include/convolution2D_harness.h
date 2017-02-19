@@ -17,74 +17,80 @@
 #include "run.h"
 #include "utils.h"
 
-void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, const size_t N,
-		 const std::string &grid_file, const std::string &gold_file, const bool force,
-		 const bool threaded, const bool binary) {
-	using namespace std;
+using namespace std;
 
-	if (binary) std::cout << "Using precompiled binaries" << std::endl;
+void compute_gold(const size_t M, const size_t N, Matrix<float> &grid, Matrix<float> weights,
+		  Matrix<float> &gold, const std::string &grid_file,
+		  const std::string &weights_file, const std::string &gold_file) {
 
-	// Compute grid and output (M rows, N columns)
-	Matrix<float> grid(M * N);
-	Matrix<float> gold(M * N);
-	Matrix<float> weights(3 * 3);
-
-	// init weights
+	// init weights -- currently hardcoded for 3x3
 	for (unsigned y = 0; y < 3; ++y) {
 		for (unsigned x = 0; x < 3; ++x) {
 			weights[y * 3 + x] = (y * 3 + x) * 1.0f;
 		}
 	}
 
-	// use existing grid and gold or init them
-	if (File::is_file_exist(gold_file) && File::is_file_exist(grid_file)) {
-		std::cout << "use existing grid and gold" << std::endl;
-		File::load_input(gold, gold_file);
-		File::load_input(grid, grid_file);
-	} else {
-		// init grid
-		for (unsigned y = 0; y < N; ++y)
-			for (unsigned x = 0; x < N; ++x) {
-				grid[y * N + x] = (((y * N + x) % 8) + 1) * 1.0f;
-			}
-
-		// compute gold
-		std::cout << "compute gold" << std::endl;
-		for (unsigned y = 0; y < M; ++y) {
-			for (unsigned x = 0; x < N; ++x) {
-
-				float sum = 0.0f;
-				for (int i = -1; i < 2; ++i) {
-					for (int j = -1; j < 2; ++j) {
-						int posY = y + i;
-						int posX = x + j;
-
-						// clamp boundary
-						posY = max(0, posY);
-						posY = min(static_cast<int>(M - 1), posY);
-						posX = max(0, posX);
-						posX = min(static_cast<int>(N - 1), posX);
-
-						int coord = posY * N + posX;
-						float weight = weights[(i + 1) * 3 + (j + 1)];
-						if ((y * N + x) == 0) {
-							cout << "WEIGHT: " << weight << "\t";
-							cout << "GRID: " << grid[coord] << "\n";
-						}
-						sum += grid[coord] * weight;
-					}
-				}
-				unsigned position = y * N + x;
-				if (position <= 10) {
-					cout << "POSITION: " << position << "\t";
-					cout << "COMPUTED: " << sum << "\n";
-				}
-				gold[position] = sum;
-			}
+	// init grid
+	for (unsigned y = 0; y < N; ++y)
+		for (unsigned x = 0; x < N; ++x) {
+			grid[y * N + x] = (((y * N + x) % 8) + 1) * 1.0f;
 		}
 
-		File::save_input(gold, gold_file);
-		File::save_input(grid, grid_file);
+	// compute gold
+	std::cout << "compute gold" << std::endl;
+	for (unsigned y = 0; y < M; ++y) {
+		for (unsigned x = 0; x < N; ++x) {
+
+			float sum = 0.0f;
+			for (int i = -1; i < 2; ++i) {
+				for (int j = -1; j < 2; ++j) {
+					int posY = y + i;
+					int posX = x + j;
+
+					// clamp boundary
+					posY = max(0, posY);
+					posY = min(static_cast<int>(M - 1), posY);
+					posX = max(0, posX);
+					posX = min(static_cast<int>(N - 1), posX);
+
+					int coord = posY * N + posX;
+					float weight = weights[(i + 1) * 3 + (j + 1)];
+
+					sum += grid[coord] * weight;
+				}
+			}
+			unsigned position = y * N + x;
+			gold[position] = sum;
+		}
+	}
+
+	File::save_input(gold, gold_file);
+	File::save_input(grid, grid_file);
+	File::save_input(weights, weights_file);
+}
+
+void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, const size_t N,
+		 const std::string &grid_file, const std::string &gold_file,
+		 const std::string &weights_file, const bool force, const bool threaded,
+		 const bool binary) {
+
+	if (binary) std::cout << "Using precompiled binaries" << std::endl;
+
+	// M rows, N columns
+	Matrix<float> grid(M * N);
+	Matrix<float> gold(M * N);
+	Matrix<float> weights(3 * 3);
+
+	// use existing grid, weights and gold or init them
+	if (File::is_file_exist(gold_file) && File::is_file_exist(grid_file) &&
+	    File::is_file_exist(weights_file)) {
+		std::cout << "use existing grid, weights and gold" << std::endl;
+		File::load_input(gold, gold_file);
+		File::load_input(grid, grid_file);
+		File::load_input(weights, weights_file);
+	} else {
+		std::cout << "init grid and weights and compute gold" << std::endl;
+		compute_gold(M, N, grid, weights, gold, grid_file, weights_file, gold_file);
 	}
 
 	// validation function
@@ -157,17 +163,6 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 							r->getKernel().setArg(i++, local_arg);
 						r->getKernel().setArg(i++, static_cast<int>(M));
 						r->getKernel().setArg(i++, static_cast<int>(N));
-
-						auto numWorkItems = r->loc1 * r->loc2 * r->loc3;
-						bool compatible = OpenCL::compatibility_checks(
-						    r->getKernel(), numWorkItems, r->sum_local);
-						if (!compatible) {
-							std::cout
-							    << "[ABORT] Manual check failed - too "
-							       "much local memory required\n";
-							// right way to terminate thread?
-							return -1;
-						}
 
 						OpenCL::executeRun<float>(*r, output_dev, M * N,
 									  validate);
