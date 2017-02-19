@@ -67,8 +67,10 @@ class OpenCL {
 		if (!compatible) {
 			std::cout << "[ABORT] Compatibility check failed\n";
 			// right way to terminate thread?
+			// throw "kernel not compatible";
 			// std::terminate();
-			exit(-1);
+			// exit(-1);
+			return;
 		}
 
 		static int counter = 0;
