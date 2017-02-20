@@ -89,6 +89,7 @@ class OpenCL {
 			run.setup(context);
 
 			// executing
+			std::cout << "Executing...\n";
 			cl::Event evt;
 			for (int i = 0; i < iterations; ++i) {
 				queue.enqueueNDRangeKernel(run.kernel, cl::NullRange,
@@ -97,8 +98,14 @@ class OpenCL {
 				evt.wait();
 				auto time = evt.getProfilingInfo<CL_PROFILING_COMMAND_END>() -
 					    evt.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+				auto timeConverted = ((double)time) / 1000.0 / 1000.0;
+				std::cout << "Time: " << timeConverted << "\n";
 				times.push_back(((double)time) / 1000.0 / 1000.0);
 				if (times.back() > 5 * best_time) break;
+				if (times.back() > timeout) {
+					std::cout << "Timed out\n";
+					break;
+				}
 			}
 			// read back the result
 			std::vector<T> result(output_size);
