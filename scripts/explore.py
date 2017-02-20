@@ -207,11 +207,11 @@ def explore():
     printSummary()
     
 def printSummary():
-    # print how many valid kernels there are
+    # print how many executed runs there are
     os.chdir(expressionCl)
     validExecutions = "find . -name \"" + timeCsv + "\" | xargs cat | wc -l"
     allExecutions = "find . -name \"exec_" + inputSize + ".csv\" | xargs cat | wc -l"
-    print(bcolors.BLUE + "[INFO] Valid kernels: " + bcolors.ENDC, end='', flush=True)
+    print(bcolors.BLUE + "[INFO] Executed runs: " + bcolors.ENDC, end='', flush=True)
     command = " echo -n $("+validExecutions+") && echo -n '/' && " + allExecutions
     os.system(command)
     os.chdir(explorationDir)
