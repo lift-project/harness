@@ -66,6 +66,7 @@ class OpenCL {
 		    OpenCL::compatibility_checks(run.getKernel(), numWorkItems, run.sum_local);
 		if (!compatible) {
 			std::cout << "[ABORT] Compatibility check failed\n";
+				File::add_incompatible(run.hash);
 			// right way to terminate thread?
 			// throw "kernel not compatible";
 			// std::terminate();
@@ -89,7 +90,6 @@ class OpenCL {
 			run.setup(context);
 
 			// executing
-			std::cout << "Executing...\n";
 			cl::Event evt;
 			for (int i = 0; i < iterations; ++i) {
 				queue.enqueueNDRangeKernel(run.kernel, cl::NullRange,
@@ -99,13 +99,15 @@ class OpenCL {
 				auto time = evt.getProfilingInfo<CL_PROFILING_COMMAND_END>() -
 					    evt.getProfilingInfo<CL_PROFILING_COMMAND_START>();
 				auto timeConverted = ((double)time) / 1000.0 / 1000.0;
-				std::cout << "Time: " << timeConverted << "\n";
+				std::cout << "[" << counter << "] Time: " << timeConverted; 
 				times.push_back(((double)time) / 1000.0 / 1000.0);
-				if (times.back() > 5 * best_time) break;
 				if (times.back() > timeout) {
-					std::cout << "Timed out\n";
+					std::cout << " ...timed out\n";
 					break;
-				}
+				} else if (times.back() > 5 * best_time) {
+					std::cout << "...too slow compared to previous runs\n"; 
+					break;
+				} else std::cout << std::endl;
 			}
 			// read back the result
 			std::vector<T> result(output_size);
@@ -124,7 +126,7 @@ class OpenCL {
 				// Save result to file
 				File::add_time(run.hash, median, local_size);
 				best_time = min(best_time, median);
-				std::cout << "[" << counter << "] best time: " << best_time
+				std::cout << "[" << counter << "] best time so far: " << best_time
 					  << std::endl;
 			}
 		} catch (const cl::Error &err) {

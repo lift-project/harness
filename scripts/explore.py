@@ -44,7 +44,7 @@ parser.add_argument('--execute', dest='execute', action='store_true',
 parser.add_argument('--rerun', dest='rerun', action='store_true',
         help='removeBlacklist + execute')
 parser.add_argument('--removeBlacklist', dest='removeBlacklist', action='store_true',
-        help='remove generated time_X.csv to enable re-running things')
+        help='remove blacklisted files to enable re-running things')
 parser.add_argument('config', action='store', default='config',
         help='config file')
 
@@ -205,6 +205,11 @@ def explore():
     elapsed = (end-start)/60
     printBlue("[INFO] Finished exploration! Took " + str(elapsed) + " minutes to execute")
     printSummary()
+
+def printOccurences(name):
+    print(bcolors.BLUE + "[INFO] " + name + ": " + bcolors.ENDC, end='', flush=True)
+    find = "find . -name \"" + name + "_" + inputSize + ".csv\" | xargs cat | wc -l"
+    os.system(find)
     
 def printSummary():
     # print how many executed runs there are
@@ -214,15 +219,29 @@ def printSummary():
     print(bcolors.BLUE + "[INFO] Executed runs: " + bcolors.ENDC, end='', flush=True)
     command = " echo -n $("+validExecutions+") && echo -n '/' && " + allExecutions
     os.system(command)
+    printOccurences("blacklist")
+    printOccurences("incompatible")
+    printOccurences("invalid")
+    printOccurences("timing")
+    printOccurences("compileerror")
     os.chdir(explorationDir)
+
+def removeCsv(name):
+    command = "find . -name \"" + name + "_" + inputSize + ".csv\" | xargs rm"
+    os.system(command)
 
 def removeBlacklist():
     printBlue("[INFO] Removing time_X.csv and blacklist_X.csv files:")
     os.chdir(expressionCl)
-    command1 = "find . -name \"" + timeCsv + "\" | xargs rm"
-    os.system(command1)
-    command2 = "find . -name \"" + blacklistCsv + "\" | xargs rm"
-    os.system(command2)
+    removeCsv("blacklist")
+    removeCsv("incompatible")
+    removeCsv("invalid")
+    removeCsv("timing")
+    removeCsv("compileerror")
+    #command1 = "find . -name \"" + timeCsv + "\" | xargs rm"
+    #os.system(command1)
+    #command2 = "find . -name \"" + blacklistCsv + "\" | xargs rm"
+    #os.system(command2)
     os.chdir(explorationDir)
 
 
