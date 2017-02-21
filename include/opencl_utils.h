@@ -65,8 +65,8 @@ class OpenCL {
 		bool compatible =
 		    OpenCL::compatibility_checks(run.getKernel(), numWorkItems, run.sum_local);
 		if (!compatible) {
-			std::cout << "[ABORT] Compatibility check failed\n";
-				File::add_incompatible(run.hash);
+			std::cerr << "[INCOMPATIBLE] Compatibility check failed\n";
+			File::add_incompatible(run.hash);
 			// right way to terminate thread?
 			// throw "kernel not compatible";
 			// std::terminate();
@@ -99,15 +99,16 @@ class OpenCL {
 				auto time = evt.getProfilingInfo<CL_PROFILING_COMMAND_END>() -
 					    evt.getProfilingInfo<CL_PROFILING_COMMAND_START>();
 				auto timeConverted = ((double)time) / 1000.0 / 1000.0;
-				std::cout << "[" << counter << "] Time: " << timeConverted; 
+				// std::cout << "[" << counter << "] Time: " << timeConverted <<
+				// std::endl;
 				times.push_back(((double)time) / 1000.0 / 1000.0);
 				if (times.back() > timeout) {
-					std::cout << " ...timed out\n";
+					// std::cout << " ...timed out\n";
 					break;
 				} else if (times.back() > 5 * best_time) {
-					std::cout << "...too slow compared to previous runs\n"; 
+					// std::cout << "...too slow compared to previous runs\n";
 					break;
-				} else std::cout << std::endl;
+				}
 			}
 			// read back the result
 			std::vector<T> result(output_size);
@@ -117,8 +118,8 @@ class OpenCL {
 			if (!validation(result)) {
 				// Save result to file
 				File::add_invalid(run.hash);
-				std::cerr << "[" << counter << "] Cross validation failed for "
-					  << run.hash << endl;
+				std::cerr << "[INVALID] [" << counter
+					  << "] Cross validation failed for " << run.hash << endl;
 			} else {
 				// take median
 				sort(times.begin(), times.end());
@@ -126,13 +127,15 @@ class OpenCL {
 				// Save result to file
 				File::add_time(run.hash, median, local_size);
 				best_time = min(best_time, median);
-				std::cout << "[" << counter << "] best time so far: " << best_time
+				std::cout << "[" << counter << "] best time: " << best_time
 					  << std::endl;
 			}
 		} catch (const cl::Error &err) {
 			if (err.err() != CL_INVALID_WORK_GROUP_SIZE) {
+				std::cerr << "[BLACKLIST] [" << counter
+					  << "] execution failed:  " << run.hash << endl;
 				File::add_blacklist(run.hash);
-				cerr << "execution failed: " << run.hash << endl;
+				// cerr << "execution failed: " << run.hash << endl;
 				cerr << err.what() << " (" << err.err() << ")" << std::endl;
 				exit(err.err());
 			}
@@ -205,6 +208,7 @@ class OpenCL {
 			    const size_t num_work_items, const bool binary_mode) {
 		auto code = loadCode(hash, binary_mode);
 		if (code.size() == 0) {
+			std::cerr << "[BLACKLIST] code.size == 0: " << hash << std::endl;
 			File::add_blacklist(hash);
 			return false;
 		}
@@ -224,6 +228,7 @@ class OpenCL {
 			kernel = cl::Kernel(program, "KERNEL");
 			if (!compatibility_checks(kernel, num_work_items)) {
 				kernel = cl::Kernel();
+				std::cout << "[INCOMPATIBLE] Compatibility check failed\n";
 				File::add_incompatible(hash);
 				return false;
 			}
@@ -233,14 +238,18 @@ class OpenCL {
 				    program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices.front());
 				// Nvidia doesn't compile the code if it uses too much memory (ptxas
 				// error)
-				if (what.find("uses too much shared data") != std::string::npos)
+				if (what.find("uses too much shared data") != std::string::npos) {
+					std::cerr << "[INCOMPATIBLE] Compatibility check failed\n";
 					File::add_incompatible(hash);
-				else
+				} else {
+					std::cerr << "[COMPILE-ERROR] Compilation failed : " << hash
+						  << "\n";
 					File::add_compileerror(hash);
-				std::cerr << "Compilation failed: " << what << std::endl;
+				}
 			}
 			// the getBuildInfo might also fail
 			catch (const cl::Error &err) {
+				std::cerr << "[COMPILE-ERROR] getBuildInfo failed\n";
 				File::add_compileerror(hash);
 			}
 			return false;
@@ -254,7 +263,7 @@ class OpenCL {
 		std::string cl_code = std::string((std::istreambuf_iterator<char>(t)),
 						  std::istreambuf_iterator<char>());
 		if (cl_code.size() == 0) {
-			std::cerr << "\nNo source for " << hash << ".cl\n" << std::endl;
+			std::cerr << "\n[BLACKLIST] No source for " << hash << ".cl\n" << std::endl;
 			File::add_blacklist(hash);
 		}
 

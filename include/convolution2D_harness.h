@@ -115,7 +115,7 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 			auto y = output[i];
 
 			if (abs(x - y) > 0.001f * max(abs(x), abs(y))) {
-				cout << "at " << i << ": " << x << "=/=" << y << std::endl;
+				cerr << "at " << i << ": " << x << "=/=" << y << std::endl;
 				return false;
 			}
 		}

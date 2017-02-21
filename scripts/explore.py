@@ -15,7 +15,8 @@ import calendar
 # Requirements:
 # 	* Lift directory stored in env var LIFT
 # 	* Exploration executor directory stored in env var EXECUTOR
-#		* Lift scripts HighLevelRewrite,... in PATH
+#       * Lift scripts HighLevelRewrite,... in PATH
+#       * ParameterRewrite settings need to be in LIFT/highLevel/
 #
 ####################################################################
 
@@ -72,6 +73,10 @@ collection = configParser.get('HighLevelRewrite', 'Collection')
 highLevelRewriteArgs = " --depth " + depth + " --distance " + distance
 highLevelRewriteArgs += " --explorationDepth " + explorationDepth + " --repetition " + repetitions
 highLevelRewriteArgs += " --collection " + collection
+
+### PARAMETER-REWRITE
+settings = configParser.get('ParameterRewrite', 'Settings')
+parameterRewriteArgs = " --file " + lift + "/highLevel/" + settings 
 
 ### HARNESSS
 harness = configParser.get('Harness', 'Name')
@@ -146,7 +151,7 @@ def memoryMappingRewrite():
 def parameterRewrite():
     printBlue("\n[INFO] Running ParameterRewrite")
     # use relative path, does not work properly with absoulte path for some reason
-    subprocess.call(["ParameterRewrite", expression])
+    subprocess.call(["ParameterRewrite", parameterRewriteArgs + " " + expression])
 
 def runHarness():
     printBlue("\n[INFO] Running Harness recursively")
@@ -223,7 +228,7 @@ def printSummary():
     printOccurences("incompatible")
     printOccurences("invalid")
     printOccurences("timing")
-    printOccurences("compileerror")
+    printOccurences("compilationerror")
     os.chdir(explorationDir)
 
 def removeCsv(name):
@@ -237,7 +242,7 @@ def removeBlacklist():
     removeCsv("incompatible")
     removeCsv("invalid")
     removeCsv("timing")
-    removeCsv("compileerror")
+    removeCsv("compilationerror")
     #command1 = "find . -name \"" + timeCsv + "\" | xargs rm"
     #os.system(command1)
     #command2 = "find . -name \"" + blacklistCsv + "\" | xargs rm"
