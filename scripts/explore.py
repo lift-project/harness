@@ -243,10 +243,9 @@ def removeBlacklist():
     removeCsv("invalid")
     removeCsv("timing")
     removeCsv("compilationerror")
-    #command1 = "find . -name \"" + timeCsv + "\" | xargs rm"
-    #os.system(command1)
-    #command2 = "find . -name \"" + blacklistCsv + "\" | xargs rm"
-    #os.system(command2)
+    # remove /tmp gold files
+    command = "rm /tmp/lift*"
+    os.system(command)
     os.chdir(explorationDir)
 
 

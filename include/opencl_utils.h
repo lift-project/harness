@@ -67,10 +67,6 @@ class OpenCL {
 		if (!compatible) {
 			std::cerr << "[INCOMPATIBLE] Compatibility check failed\n";
 			File::add_incompatible(run.hash);
-			// right way to terminate thread?
-			// throw "kernel not compatible";
-			// std::terminate();
-			// exit(-1);
 			return;
 		}
 
@@ -98,17 +94,11 @@ class OpenCL {
 				evt.wait();
 				auto time = evt.getProfilingInfo<CL_PROFILING_COMMAND_END>() -
 					    evt.getProfilingInfo<CL_PROFILING_COMMAND_START>();
-				auto timeConverted = ((double)time) / 1000.0 / 1000.0;
-				// std::cout << "[" << counter << "] Time: " << timeConverted <<
-				// std::endl;
 				times.push_back(((double)time) / 1000.0 / 1000.0);
-				if (times.back() > timeout) {
-					// std::cout << " ...timed out\n";
+				if (times.back() > timeout)
 					break;
-				} else if (times.back() > 5 * best_time) {
-					// std::cout << "...too slow compared to previous runs\n";
+				else if (times.back() > 5 * best_time)
 					break;
-				}
 			}
 			// read back the result
 			std::vector<T> result(output_size);

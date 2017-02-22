@@ -19,9 +19,9 @@
 #include <opencl_utils.h>
 
 // [local includes]
-#include "convolution2D_harness.h"
 #include "convolution2Drun.h"
 #include "options.h"
+#include "shocStencil2D_harness.h"
 
 int main(int argc, char *argv[]) {
 	OptParser op("Harness for SHOC's Stencil2D");
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
 	// e.g., exec_[size_string].csv
 	auto size_string = to_string(M) + "_" + to_string(N);
 	if (M == N) {
-		size_string = to_string(M - 2);
+		size_string = to_string(M);
 	}
 
 	File::set_size(size_string);

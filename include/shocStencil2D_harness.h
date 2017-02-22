@@ -40,14 +40,20 @@ void compute_gold(const size_t M, const size_t N, Matrix<float> &grid, Matrix<fl
 	// init weights -- could use real SHOC weights here
 	for (unsigned y = 0; y < 3; ++y) {
 		for (unsigned x = 0; x < 3; ++x) {
-			weights[y * 3 + x] = (y * 3 + x) * 1.0f;
+			// weights[y * 3 + x] = (y * 3 + x) * 1.0f;
+			int pos = y * 3 + x;
+			if (x == 0 && y == 0)
+				weights[pos] = 1.0f;
+			else
+				weights[pos] = 0.0f;
 		}
 	}
 
 	// init grid
-	for (unsigned y = 0; y < N; ++y)
+	for (unsigned y = 0; y < M; ++y)
 		for (unsigned x = 0; x < N; ++x) {
-			grid[y * N + x] = (((y * N + x) % 8) + 1) * 1.0f;
+			// grid[y * N + x] = (((y * N + x) % 8) + 1) * 1.0f;
+			grid[y * N + x] = (x + y) % N * 1.0f;
 		}
 
 	// compute gold
@@ -67,7 +73,7 @@ void compute_gold(const size_t M, const size_t N, Matrix<float> &grid, Matrix<fl
 					sum += grid[coord] * weight;
 				}
 			}
-			unsigned position = (y - 1) * N + (x - 1);
+			unsigned position = (y - 1) * (N - 2) + (x - 1);
 			gold[position] = sum;
 		}
 	}
@@ -109,7 +115,7 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 			auto y = output[i];
 
 			if (abs(x - y) > 0.001f * max(abs(x), abs(y))) {
-				cout << "at " << i << ": " << x << "=/=" << y << std::endl;
+				cerr << "at " << i << ": " << x << "=/=" << y << std::endl;
 				return false;
 			}
 		}
@@ -118,12 +124,13 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 
 	// Allocating buffers
 	const size_t buf_size = grid.size() * sizeof(float);
+	const size_t out_size = gold.size() * sizeof(float);
 	const size_t weights_size = weights.size() * sizeof(float);
 	cl::Buffer grid_dev = OpenCL::alloc(CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, buf_size,
 					    static_cast<void *>(grid.data()));
 	cl::Buffer weights_dev = OpenCL::alloc(CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
 					       weights_size, static_cast<void *>(weights.data()));
-	cl::Buffer output_dev = OpenCL::alloc(CL_MEM_READ_WRITE, buf_size);
+	cl::Buffer output_dev = OpenCL::alloc(CL_MEM_READ_WRITE, out_size);
 
 	// multi-threaded exec
 	if (threaded) {
@@ -163,7 +170,8 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 					}
 
 					set_kernel_args(r, grid_dev, weights_dev, output_dev, M, N);
-					OpenCL::executeRun<float>(*r, output_dev, M * N, validate);
+					OpenCL::executeRun<float>(*r, output_dev, gold.size(),
+								  validate);
 				}
 			}
 		});
@@ -178,10 +186,10 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 		for (auto &r : all_run) {
 			if (r->compile(binary)) {
 				set_kernel_args(r, grid_dev, weights_dev, output_dev, M, N);
-				OpenCL::executeRun<float>(*r, output_dev, M * N, validate);
+				OpenCL::executeRun<float>(*r, output_dev, gold.size(), validate);
 			}
 		}
 	}
 };
 
-#endif // EXECUTOR_CONVOLUTION2D_HARNESS_H
+#endif // EXECUTOR_SHOCSTENCIL2D_HARNESS_H
