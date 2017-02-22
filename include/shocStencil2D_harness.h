@@ -33,19 +33,21 @@ void set_kernel_args(const shared_ptr<Run> run, const cl::Buffer &grid_dev,
 	run->getKernel().setArg(i++, static_cast<int>(N));
 }
 
-void compute_gold(const size_t M, const size_t N, Matrix<float> &grid, Matrix<float> weights,
+void compute_gold(const size_t M, const size_t N, Matrix<float> &grid, Matrix<float> &weights,
 		  Matrix<float> &gold, const std::string &grid_file,
 		  const std::string &weights_file, const std::string &gold_file) {
 
 	// init weights -- could use real SHOC weights here
 	for (unsigned y = 0; y < 3; ++y) {
 		for (unsigned x = 0; x < 3; ++x) {
-			// weights[y * 3 + x] = (y * 3 + x) * 1.0f;
+			weights[y * 3 + x] = (y * 3 + x) * 1.0f;
+			/*
 			int pos = y * 3 + x;
 			if (x == 0 && y == 0)
 				weights[pos] = 1.0f;
 			else
 				weights[pos] = 0.0f;
+				*/
 		}
 	}
 

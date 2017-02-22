@@ -117,8 +117,9 @@ class OpenCL {
 				// Save result to file
 				File::add_time(run.hash, median, local_size);
 				best_time = min(best_time, median);
-				std::cout << "[" << counter << "] best time: " << best_time
-					  << std::endl;
+				std::cout << "[" << counter << "] best time: " << median;
+				if (median > timeout) std::cout << " (timeout: " << timeout << ")";
+				std::cout << std::endl;
 			}
 		} catch (const cl::Error &err) {
 			if (err.err() != CL_INVALID_WORK_GROUP_SIZE) {

@@ -97,6 +97,15 @@ class File {
 		out.write((char *)data.data(), sizeof(T) * data.size());
 	}
 
+	// save file to human readible format
+	template <typename T>
+	static void save_input_debug(const std::vector<T> &data, const std::string &filename) {
+		using namespace std;
+		ofstream out(filename, ios::out);
+		for (auto element : data)
+			out << element << "\n";
+	}
+
 	static bool is_file_exist(const std::string &filename) {
 		std::ifstream infile(filename);
 		return infile.good();

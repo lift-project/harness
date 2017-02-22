@@ -217,7 +217,7 @@ def printOccurences(name):
     os.system(find)
     
 def printSummary():
-    # print how many executed runs there are
+    #print how many executed runs there are
     os.chdir(expressionCl)
     validExecutions = "find . -name \"" + timeCsv + "\" | xargs cat | wc -l"
     allExecutions = "find . -name \"exec_" + inputSize + ".csv\" | xargs cat | wc -l"
@@ -232,16 +232,18 @@ def printSummary():
     os.chdir(explorationDir)
 
 def removeCsv(name):
+    #filename = name + "_" + inputSize + ".csv"
+    #printBlue("[INFO] Removing " + filename)
     command = "find . -name \"" + name + "_" + inputSize + ".csv\" | xargs rm"
     os.system(command)
 
 def removeBlacklist():
-    printBlue("[INFO] Removing time_X.csv and blacklist_X.csv files:")
+    printBlue("[INFO] Removing blacklist:")
     os.chdir(expressionCl)
     removeCsv("blacklist")
     removeCsv("incompatible")
     removeCsv("invalid")
-    removeCsv("timing")
+    removeCsv("time")
     removeCsv("compilationerror")
     # remove /tmp gold files
     command = "rm /tmp/lift*"
