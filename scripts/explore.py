@@ -74,6 +74,21 @@ highLevelRewriteArgs = " --depth " + depth + " --distance " + distance
 highLevelRewriteArgs += " --explorationDepth " + explorationDepth + " --repetition " + repetitions
 highLevelRewriteArgs += " --collection " + collection
 
+### MEMORY-MAPPING-REWRITE
+global0 = configParser.get('MemoryMappingRewrite', 'Global0')
+global01 = configParser.get('MemoryMappingRewrite', 'Global01')
+global10 = configParser.get('MemoryMappingRewrite', 'Global10')
+group0 = configParser.get('MemoryMappingRewrite', 'Group0')
+group01 = configParser.get('MemoryMappingRewrite', 'Group01')
+group10 = configParser.get('MemoryMappingRewrite', 'Group10')
+memoryMappingRewriteArgs = ""
+if(global0 == "true"): memoryMappingRewriteArgs += " --global0"
+if(global01 == "true"): memoryMappingRewriteArgs += " --global01"
+if(global10 == "true"): memoryMappingRewriteArgs += " --global10"
+if(group0 == "true"): memoryMappingRewriteArgs += " --group0"
+if(group01 == "true"): memoryMappingRewriteArgs += " --group01"
+if(group10 == "true"): memoryMappingRewriteArgs += " --group10"
+
 ### PARAMETER-REWRITE
 settings = configParser.get('ParameterRewrite', 'Settings')
 parameterRewriteArgs = " --file " + lift + "/highLevel/" + settings 
@@ -134,19 +149,20 @@ def silent_mkdir(path):
 def clean():
     printBlue("[INFO] Cleaning")
     silentremove("exploration.log")
-    shutil.rmtree(expression, ignore_errors=True)
-    shutil.rmtree(expressionLower, ignore_errors=True)
+    silentremove("generation.log")
+    #shutil.rmtree(expression, ignore_errors=True)
+    #shutil.rmtree(expressionLower, ignore_errors=True)
     shutil.rmtree(expressionCl, ignore_errors=True)
     shutil.rmtree(plotsDir, ignore_errors=True)
 
 def highLevelRewrite():
     printBlue("[INFO] Running HighLevelRewrite")
-    subprocess.call(["HighLevelRewrite", highLevelRewriteArgs + " " + lift + "/highLevel/" + expression])
+    subprocess.call(["HighLevelRewrite", highLevelRewriteArgs + " " + lift + "highLevel/" + expression])
 
 def memoryMappingRewrite():
     printBlue("\n[INFO] Running MemoryMappingRewrite")
     # use relative path, does not work properly with absoulte path for some reason
-    subprocess.call(["MemoryMappingRewrite", expression])
+    subprocess.call(["MemoryMappingRewrite", memoryMappingRewriteArgs + " " + expression])
 
 def parameterRewrite():
     printBlue("\n[INFO] Running ParameterRewrite")

@@ -1,0 +1,36 @@
+### NOTES #############################################
+# Ensure input size fits everywhere
+#  -> also check ParameterRewrite settings .json-file
+
+[General]
+Expression = convolution2D
+InputSize = 1024
+
+[HighLevelRewrite]
+Depth = 6
+Distance = 9
+ExplorationDepth = 5
+Repetition = 1
+Collection = convolution2D
+
+[ParameterRewrite]
+Settings = convolution2D.json
+
+[Harness]
+Name = harness_convolution2D
+Args = -p 2 -m 1024 -n 1024 -i 10 
+
+[CSV]
+Header = kernel,time,lsize0,lsize1,lsize2
+
+[R]
+Script = /home/bastian/development/exploration/violin.r
+
+### DEFAULTS ##################
+# [HighLevelRewrite]
+# Depth = 6
+# Distance = 9
+# ExplorationDepth = 5
+# Repetition = 2
+# Collection = default
+
