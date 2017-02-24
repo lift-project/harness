@@ -8,6 +8,7 @@ include_directories(common)
 include_directories(include)
 
 find_package(OpenCL)
+find_package(Boost REQUIRED COMPONENTS program_options)
 
 # Enable ExternalProject CMake module
 include(ExternalProject)
@@ -45,7 +46,7 @@ add_library (Executor ${SOURCE_FILES})
 
 function(add_app name)
     add_executable(harness_${name} apps/${name}.cpp)
-    target_link_libraries(harness_${name} Executor pthread ${OpenCL_LIBRARIES})
+    target_link_libraries(harness_${name} Executor pthread ${OpenCL_LIBRARIES} ${Boost_LIBRARIES})
 endfunction()
 
 include_directories(apps)
@@ -55,6 +56,7 @@ add_app(mv)
 add_app(gemv)
 add_app(nbody)
 add_app(kmeans)
+add_app(generic)
 
 enable_testing()
 add_subdirectory(test)
