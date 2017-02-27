@@ -222,12 +222,8 @@ int main(int argc, const char *const *argv) {
 
   string input_file;
   unsigned platform, device;
-  int iterations;
 
-  unsigned local_0, local_1, local_2, min_local;
-  bool local_combinations;
-
-  float timeout;
+  unsigned local_0, local_1, local_2;
 
   bool threaded, binary;
 
@@ -241,11 +237,11 @@ int main(int argc, const char *const *argv) {
           "OpenCL platform index")
       ("device,d", po::value<unsigned>(&device)->default_value(0),
           "OpenCL device index")
-      ("timeout,t", po::value<float>(&timeout)->default_value(100.0f),
+      ("timeout,t", po::value<float>(&OpenCL::timeout)->default_value(100.0f),
           "Timeout to avoid multiple executions")
-      ("iterations,i", po::value<int>(&iterations)->default_value(10),
+      ("iterations,i", po::value<int>(&OpenCL::iterations)->default_value(10),
           "Number of iterations for each experiment")
-      ("local-combinations,l", po::value<bool>(&local_combinations)->default_value(false),
+      ("local-combinations,l", po::value<bool>(&OpenCL::local_combinations)->default_value(false),
           "Run different valid combinations of local sizes instead of letting the implementation choose if the local size is marked '?'.")
       ("l0", po::value<unsigned>(&local_0)->default_value(0),
           "Local size in dim 0 to use if specified as '?'")
@@ -253,7 +249,7 @@ int main(int argc, const char *const *argv) {
           "Local size in dim 1 to use if specified as '?'")
       ("l2", po::value<unsigned>(&local_2)->default_value(0),
           "Local size in dim 2 to use if specified as '?'")
-      ("min-local", po::value<unsigned>(&min_local)->default_value(1),
+      ("min-local", po::value<size_t>(&OpenCL::min_local_size)->default_value(1),
           "The minimum local size to use when running the experiments")
       ("b,binary", po::value<bool>(&binary)->default_value(false),
           "Load programs as binaries instead of compiling OpenCL-C source.")
@@ -291,10 +287,7 @@ int main(int argc, const char *const *argv) {
   }
 
   File::set_size(size_string);
-  OpenCL::timeout = timeout;
-  OpenCL::local_combinations = local_combinations;
-  OpenCL::min_local_size = min_local;
-  OpenCL::iterations = iterations;
+
 
   // === Loading CSV file ===
   auto all_run = Csv::init(
