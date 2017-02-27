@@ -91,7 +91,9 @@ if(group10 == "true"): memoryMappingRewriteArgs += " --group10"
 
 ### PARAMETER-REWRITE
 settings = configParser.get('ParameterRewrite', 'Settings')
+explore = configParser.get('ParameterRewrite', 'Explore')
 parameterRewriteArgs = " --file " + lift + "/highLevel/" + settings 
+if(explore == "true"): parameterRewriteArgs += " --explore"
 
 ### HARNESSS
 harness = configParser.get('Harness', 'Name')
