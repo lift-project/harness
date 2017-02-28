@@ -91,13 +91,13 @@ if(group10 == "true"): memoryMappingRewriteArgs += " --group10"
 
 ### PARAMETER-REWRITE
 settings = configParser.get('ParameterRewrite', 'Settings')
-explore = configParser.get('ParameterRewrite', 'Explore')
-sample = configParser.get('ParameterRewrite', 'Sample')
+exploreNDRange = configParser.get('ParameterRewrite', 'ExploreNDRange')
+sampleNDRange = configParser.get('ParameterRewrite', 'SampleNDRange')
 sequential = configParser.get('ParameterRewrite', 'Sequential')
 parameterRewriteArgs = " --file " + lift + "/highLevel/" + settings 
-if(explore == "true"): parameterRewriteArgs += " --explore"
+if(exploreNDRange == "true"): parameterRewriteArgs += " --exploreNDRange"
 if(sequential == "true"): parameterRewriteArgs += " --sequential"
-if not (sample == ""): parameterRewriteArgs += " --sample " + sample
+if not (sampleNDRange == ""): parameterRewriteArgs += " --sampleNDRange " + sample
 
 ### HARNESSS
 harness = configParser.get('Harness', 'Name')
