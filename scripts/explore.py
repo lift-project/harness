@@ -92,8 +92,12 @@ if(group10 == "true"): memoryMappingRewriteArgs += " --group10"
 ### PARAMETER-REWRITE
 settings = configParser.get('ParameterRewrite', 'Settings')
 explore = configParser.get('ParameterRewrite', 'Explore')
+sample = configParser.get('ParameterRewrite', 'Sample')
+sequential = configParser.get('ParameterRewrite', 'Sequential')
 parameterRewriteArgs = " --file " + lift + "/highLevel/" + settings 
 if(explore == "true"): parameterRewriteArgs += " --explore"
+if(sequential == "true"): parameterRewriteArgs += " --sequential"
+if not (sample == ""): parameterRewriteArgs += " --sample " + sample
 
 ### HARNESSS
 harness = configParser.get('Harness', 'Name')
@@ -152,8 +156,8 @@ def clean():
     printBlue("[INFO] Cleaning")
     silentremove("exploration.log")
     silentremove("generation.log")
-    #shutil.rmtree(expression, ignore_errors=True)
-    #shutil.rmtree(expressionLower, ignore_errors=True)
+    shutil.rmtree(expression, ignore_errors=True)
+    shutil.rmtree(expressionLower, ignore_errors=True)
     shutil.rmtree(expressionCl, ignore_errors=True)
     shutil.rmtree(plotsDir, ignore_errors=True)
 
