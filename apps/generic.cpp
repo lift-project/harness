@@ -2,8 +2,6 @@
 #include <vector>
 #include <iostream>
 #include <condition_variable>
-#include <functional>
-#include <mutex>
 #include <queue>
 #include <thread>
 
@@ -25,6 +23,8 @@ vector<vector<float>> read_inputs;
 
 void load_inputs(vector<pair<string,long>>& inputs) {
 
+  cout << "Loading inputs..." << endl;
+
   read_inputs.reserve(inputs.size());
 
   for (auto& pair : inputs) {
@@ -45,26 +45,21 @@ void load_inputs(vector<pair<string,long>>& inputs) {
       float temp;
       in >> temp;
 
-      cout << temp << " ";
-
       contents.push_back(temp);
     }
 
-    cout << endl;
-    cout << contents.size() << endl;
-
     read_inputs.push_back(contents);
-
   }
 
 }
 
 void load_configuration(const string& filename) {
+
+  cout << "Loading configuration..." << endl;
+
   pt::ptree tree;
 
   pt::read_json(filename, tree);
-
-  cout << tree.get<string>("kernel") << endl;
 
   for (auto& size : tree.get_child("sizes"))
     size_arguments.push_back(size.second.get_value<int>());
@@ -78,13 +73,15 @@ void load_configuration(const string& filename) {
 
     inputs.push_back({ filename, size });
 
-    cout << filename << endl;
-    cout << size << endl;
   }
 
   load_inputs(inputs);
 
 }
+
+void execute(function<bool(const vector<float>&)> validate,
+    const vector<cl::Buffer> &input_buffers, const cl::Buffer &output_dev,
+    shared_ptr<Run> &r);
 
 /**
  * FIXME: This is a lazy copy paste of the old main with a template switch for single and double
@@ -141,7 +138,7 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
 					std::unique_lock<std::mutex> locker(m);
 					while (!ready && !done)
 						cv.wait(locker);
-				}
+        }
 
         while (!ready_queue.empty()) {
           {
@@ -150,13 +147,7 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
             ready_queue.pop();
           }
 
-          cl_uint idx = 0;
-
-          for (auto& buffer : input_buffers)
-            r->getKernel().setArg(idx++, buffer);
-
-          r->getKernel().setArg(idx, output_dev);
-          OpenCL::executeRun<float>(*r, output_dev, output_size/sizeof(float), validate);
+          execute(validate, input_buffers, output_dev, r);
         }
 			}
 		});
@@ -169,19 +160,32 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
 	// single threaded exec
 	else {
     for (auto &r : all_run) {
-      if (r->compile(binary)) {
 
-        cl_uint idx = 0;
+      if (r->compile(binary))
+        execute(validate, input_buffers, output_dev, r);
 
-        for (auto& buffer : input_buffers)
-          r->getKernel().setArg(idx++, buffer);
-
-        r->getKernel().setArg(idx, output_dev);
-
-        OpenCL::executeRun<float>(*r, output_dev, output_size/sizeof(float), validate);
-      }
     }
   }
+}
+
+void execute(function<bool(const std::vector<float>&)> validate,
+    const vector<cl::Buffer> &input_buffers, const cl::Buffer &output_dev,
+    shared_ptr<Run> &r) {
+  cl_uint i;
+
+  for (i = 0; i < inputs.size(); i++) {
+
+    auto type = inputs[i].first;
+
+    if (type.find("_") == string::npos)
+      r->getKernel().setArg(i, read_inputs[i].front());
+    else
+      r->getKernel().setArg(i, input_buffers[i]);
+  }
+
+  r->getKernel().setArg(i, output_dev);
+
+  OpenCL::executeRun<float>(*r, output_dev, output_size / sizeof(float), validate);
 };
 
 template<typename T>
