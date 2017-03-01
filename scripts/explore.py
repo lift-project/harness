@@ -97,7 +97,7 @@ sequential = configParser.get('ParameterRewrite', 'Sequential')
 parameterRewriteArgs = " --file " + lift + "/highLevel/" + settings 
 if(exploreNDRange == "true"): parameterRewriteArgs += " --exploreNDRange"
 if(sequential == "true"): parameterRewriteArgs += " --sequential"
-if not (sampleNDRange == ""): parameterRewriteArgs += " --sampleNDRange " + sample
+if not (sampleNDRange == ""): parameterRewriteArgs += " --sampleNDRange " + sampleNDRange
 
 ### HARNESSS
 harness = configParser.get('Harness', 'Name')
