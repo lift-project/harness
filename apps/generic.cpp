@@ -235,7 +235,7 @@ int main(int argc, const char *const *argv) {
 
   description.add_options()
       ("help,h", "Produce this message")
-      ("input,i", po::value<string>(&input_file)->required(),
+      ("file,f", po::value<string>(&input_file)->required(),
           "The input configuration file.")
       ("platform,p", po::value<unsigned>(&platform)->default_value(0),
           "OpenCL platform index")
