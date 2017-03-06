@@ -60,6 +60,7 @@ add_app(stencilNoPad)
 add_app(convolution)
 add_app(convolution2D)
 add_app(shocStencil2D)
+add_app(convolutionSeparableY)
 
 enable_testing()
 add_subdirectory(test)

@@ -2,8 +2,8 @@
 // Created by Bastian Hagedorn
 //
 
-#ifndef EXECUTOR_CONVOLUTION2D_HARNESS_H
-#define EXECUTOR_CONVOLUTION2D_HARNESS_H
+#ifndef EXECUTOR_CONVOLUTIONSEPARABLEY_HARNESS_H
+#define EXECUTOR_CONVOLUTIONSEPARABLEY_HARNESS_H
 
 #include <cmath>
 #include <condition_variable>
@@ -37,11 +37,9 @@ void compute_gold(const size_t M, const size_t N, Matrix<float> &grid, Matrix<fl
 		  Matrix<float> &gold, const std::string &grid_file,
 		  const std::string &weights_file, const std::string &gold_file) {
 
-	// init weights -- currently hardcoded for 3x3
-	for (unsigned y = 0; y < 3; ++y) {
-		for (unsigned x = 0; x < 3; ++x) {
-			weights[y * 3 + x] = (y * 3 + x) * 1.0f;
-		}
+	// init weights -- currently hardcoded for 3
+	for (unsigned x = 0; x < 3; ++x) {
+		weights[x] = x * 1.0f;
 	}
 
 	// init grid
@@ -57,21 +55,16 @@ void compute_gold(const size_t M, const size_t N, Matrix<float> &grid, Matrix<fl
 
 			float sum = 0.0f;
 			for (int i = -1; i < 2; ++i) {
-				for (int j = -1; j < 2; ++j) {
-					int posY = y + i;
-					int posX = x + j;
+				int posY = y + i;
 
-					// clamp boundary
-					posY = max(0, posY);
-					posY = min(static_cast<int>(M - 1), posY);
-					posX = max(0, posX);
-					posX = min(static_cast<int>(N - 1), posX);
+				// clamp boundary
+				posY = max(0, posY);
+				posY = min(static_cast<int>(M - 1), posY);
 
-					int coord = posY * N + posX;
-					float weight = weights[(i + 1) * 3 + (j + 1)];
+				int coord = posY * N + x;
+				float weight = weights[(i + 1)];
 
-					sum += grid[coord] * weight;
-				}
+				sum += grid[coord] * weight;
 			}
 			unsigned position = y * N + x;
 			gold[position] = sum;
@@ -93,7 +86,7 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 	// M rows, N columns
 	Matrix<float> grid(M * N);
 	Matrix<float> gold(M * N);
-	Matrix<float> weights(3 * 3);
+	Matrix<float> weights(3);
 
 	// use existing grid, weights and gold or init them
 	if (File::is_file_exist(gold_file) && File::is_file_exist(grid_file) &&
@@ -190,4 +183,4 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 	}
 };
 
-#endif // EXECUTOR_CONVOLUTION2D_HARNESS_H
+#endif // EXECUTOR_CONVOLUTIONSEPARABLEY_HARNESS_H
