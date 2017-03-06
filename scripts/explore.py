@@ -49,6 +49,7 @@ parser.add_argument('--removeBlacklist', dest='removeBlacklist', action='store_t
 parser.add_argument('config', action='store', default='config',
         help='config file')
 
+
 args = parser.parse_args()
 
 # CONFIG (PARSER) ##################################################
@@ -58,11 +59,15 @@ configParser = configparser.RawConfigParser()
 configParser.read(args.config)
 
 ### GENERAL
-lift = os.environ["LIFT"]
-executor = os.environ["EXECUTOR"]
+#lift = os.environ["LIFT"]
+#executor = os.environ["EXECUTOR"]
+lift = configParser.get('General', 'Lift')
+executor = configParser.get('General', 'Executor')
 expression = configParser.get('General', 'Expression')
 inputSize = configParser.get('General', 'InputSize')
-secondsSinceEpoch = str(calendar.timegm(time.gmtime()))
+suffix = configParser.get('General', 'Name')
+if (suffix == ""): suffix = str(calendar.timegm(time.gmtime()))
+#secondsSinceEpoch = str(calendar.timegm(time.gmtime()))
 
 ### HIGH-LEVEL-REWRITE
 depth = configParser.get('HighLevelRewrite', 'Depth')
@@ -108,13 +113,13 @@ harnessArgs = " " + configParser.get('Harness', 'Args')
 ### CSV
 #csvHeader = "kernel,time,lsize0,lsize1,lsize2"
 csvHeader = configParser.get('CSV', 'Header')
-epochTimeCsv = "time_" + inputSize +  "_" + secondsSinceEpoch + ".csv"
+epochTimeCsv = "time_" + inputSize +  "_" + suffix + ".csv"
 timeCsv = "time_" + inputSize + ".csv"
 blacklistCsv = "blacklist_" + inputSize + ".csv"
 
 ### R
 Rscript = configParser.get('R', 'Script')
-output = expression + "_" + inputSize +  "_" + secondsSinceEpoch + ".pdf"
+output = expression + "_" + inputSize +  "_" + suffix + ".pdf"
 RscriptArgs = " --file " + epochTimeCsv + " --out " + output
 
 ### DIRECTORIES
