@@ -13,9 +13,6 @@ import calendar
 # Script to start exploration run for a Lift high-level expression
 #
 # Requirements:
-# 	* Lift directory stored in env var LIFT
-# 	* Exploration executor directory stored in env var EXECUTOR
-#       * Lift scripts HighLevelRewrite,... in PATH
 #       * ParameterRewrite settings need to be in LIFT/highLevel/
 #
 ####################################################################
@@ -127,6 +124,7 @@ explorationDir = os.getcwd() #current working directory
 expressionLower = expression + "Lower"
 expressionCl = expression + "Cl"
 plotsDir = "plots"
+scriptsDir = lift + "scripts/compiled_scripts/"
 
 # HELPER FUNCTIONS #################################################
 def printBlue( string ):
@@ -168,17 +166,17 @@ def clean():
 
 def highLevelRewrite():
     printBlue("[INFO] Running HighLevelRewrite")
-    subprocess.call(["HighLevelRewrite", highLevelRewriteArgs + " " + lift + "highLevel/" + expression])
+    subprocess.call([scriptsDir + "HighLevelRewrite", highLevelRewriteArgs + " " + lift + "highLevel/" + expression])
 
 def memoryMappingRewrite():
     printBlue("\n[INFO] Running MemoryMappingRewrite")
     # use relative path, does not work properly with absoulte path for some reason
-    subprocess.call(["MemoryMappingRewrite", memoryMappingRewriteArgs + " " + expression])
+    subprocess.call([scriptsDir + "MemoryMappingRewrite", memoryMappingRewriteArgs + " " + expression])
 
 def parameterRewrite():
     printBlue("\n[INFO] Running ParameterRewrite")
     # use relative path, does not work properly with absoulte path for some reason
-    subprocess.call(["ParameterRewrite", parameterRewriteArgs + " " + expression])
+    subprocess.call([scriptsDir + "ParameterRewrite", parameterRewriteArgs + " " + expression])
 
 def runHarness():
     printBlue("\n[INFO] Running Harness recursively")
