@@ -72,9 +72,11 @@ distance = configParser.get('HighLevelRewrite', 'Distance')
 explorationDepth = configParser.get('HighLevelRewrite', 'ExplorationDepth')
 repetitions = configParser.get('HighLevelRewrite', 'Repetition')
 collection = configParser.get('HighLevelRewrite', 'Collection')
+onlyLower = configParser.get('HighLevelRewrite', 'OnlyLower')
 highLevelRewriteArgs = " --depth " + depth + " --distance " + distance
 highLevelRewriteArgs += " --explorationDepth " + explorationDepth + " --repetition " + repetitions
 highLevelRewriteArgs += " --collection " + collection
+if(onlyLower == "true"): highLevelRewriteArgs += " --onlyLower"
 
 ### MEMORY-MAPPING-REWRITE
 global0 = configParser.get('MemoryMappingRewrite', 'Global0')
@@ -95,10 +97,12 @@ if(group10 == "true"): memoryMappingRewriteArgs += " --group10"
 settings = configParser.get('ParameterRewrite', 'Settings')
 exploreNDRange = configParser.get('ParameterRewrite', 'ExploreNDRange')
 sampleNDRange = configParser.get('ParameterRewrite', 'SampleNDRange')
+injectNDRange = configParser.get('ParameterRewrite', 'injectNDRange')
 sequential = configParser.get('ParameterRewrite', 'Sequential')
 parameterRewriteArgs = " --file " + lift + "/highLevel/" + settings 
 if(exploreNDRange == "true"): parameterRewriteArgs += " --exploreNDRange"
 if(sequential == "true"): parameterRewriteArgs += " --sequential"
+if(injectNDRange == "true"): parameterRewriteArgs += " --injectNDRange"
 if not (sampleNDRange == ""): parameterRewriteArgs += " --sampleNDRange " + sampleNDRange
 
 ### HARNESSS

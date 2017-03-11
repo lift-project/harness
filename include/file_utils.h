@@ -90,6 +90,15 @@ class File {
 	}
 
 	template <typename T>
+	static void load_input_debug(std::vector<T> &data, const std::string &filename) {
+		using namespace std;
+		ifstream fin(filename);
+		assert(fin.is_open());
+		ifstream in(filename, ios::in);
+		in.read((char *)data.data(), sizeof(T) * data.size());
+	}
+
+	template <typename T>
 	static void save_input(const std::vector<T> &data, const std::string &filename) {
 		using namespace std;
 		ofstream out(filename, ios::out | ios::binary);
