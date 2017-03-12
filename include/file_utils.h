@@ -95,7 +95,13 @@ class File {
 		ifstream fin(filename);
 		assert(fin.is_open());
 		ifstream in(filename, ios::in);
-		in.read((char *)data.data(), sizeof(T) * data.size());
+		// in.read((char *)data.data(), sizeof(T) * data.size());
+		string line;
+		int index = 0;
+		while (getline(in, line)) {
+			// std::cout << std::stof(line) << std::endl;
+			data[index++] = std::stof(line);
+		}
 	}
 
 	template <typename T>

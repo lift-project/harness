@@ -37,9 +37,19 @@ void compute_gold(const size_t M, const size_t N, Matrix<float> &temp, Matrix<fl
 		  Matrix<float> &gold, const std::string &temp_file, const std::string &power_file,
 		  const std::string &gold_file) {
 
-	File::load_input_debug(gold, gold_file + "_nonBinary");
-	File::save_input_debug(temp, temp_file + "_nonBinary");
-	File::save_input_debug(power, power_file + "_nonBinary");
+	File::load_input_debug(gold, "/home/bastian/development/exploration/executor/datasets/"
+				     "rodiniaData/lift_hotspot_gold_8192_nonBinary");
+	File::load_input_debug(temp, "/home/bastian/development/exploration/executor/datasets/"
+				     "rodiniaData/lift_hotspot_temp_8192_nonBinary");
+	File::load_input_debug(power, "/home/bastian/development/exploration/executor/datasets/"
+				      "rodiniaData/lift_hotspot_power_8192_nonBinary");
+
+	for (int i = 0; i < 10; i++) {
+		std::cout << temp[i] << "\n";
+	}
+	for (int i = 0; i < 10; i++) {
+		std::cout << power[i] << "\n";
+	}
 
 	File::save_input(gold, gold_file);
 	File::save_input(temp, temp_file);
