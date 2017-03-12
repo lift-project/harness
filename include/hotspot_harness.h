@@ -33,22 +33,145 @@ void set_kernel_args(const shared_ptr<Run> run, const cl::Buffer &temp_dev,
 	run->getKernel().setArg(i++, static_cast<int>(N));
 }
 
+float rodiniaUserFun(float power, float top, float bottom, float left, float right, float center) {
+	{
+		float step_div_cap = 1.365333e+00;
+		return center +
+		       step_div_cap *
+			   (power + 0.1f * (bottom + top - 2 * center) +
+			    0.1 * (left + right - 2 * center) + 4.882813e-05 * (80.0f - center));
+	}
+}
+
+float id(float x) {
+	{ return x; }
+}
+
 void compute_gold(const size_t M, const size_t N, Matrix<float> &temp, Matrix<float> &power,
 		  Matrix<float> &gold, const std::string &temp_file, const std::string &power_file,
 		  const std::string &gold_file) {
 
-	File::load_input_debug(gold, "/home/bastian/development/exploration/executor/datasets/"
-				     "rodiniaData/lift_hotspot_gold_8192_nonBinary");
+	// File::load_input_debug(gold, "/home/bastian/development/exploration/executor/datasets/"
+	//			     "rodiniaData/lift_hotspot_gold_8192_nonBinary");
 	File::load_input_debug(temp, "/home/bastian/development/exploration/executor/datasets/"
 				     "rodiniaData/lift_hotspot_temp_8192_nonBinary");
 	File::load_input_debug(power, "/home/bastian/development/exploration/executor/datasets/"
 				      "rodiniaData/lift_hotspot_power_8192_nonBinary");
 
+	/*
 	for (int i = 0; i < 10; i++) {
 		std::cout << temp[i] << "\n";
 	}
 	for (int i = 0; i < 10; i++) {
 		std::cout << power[i] << "\n";
+	}
+	*/
+
+	// taken from generated kernel
+	/*
+       float v__5;
+       int v_M_3 = M;
+       int v_N_4 = N;
+       for (int v_gl_id_6 = 0; v_gl_id_6 < 8192; v_gl_id_6++) {
+	       for (int v_gl_id_7 = 0; v_gl_id_7 < 8192; v_gl_id_7++) {
+		       v__5 = rodiniaUserFun(
+			   power[(v_gl_id_7 + (v_M_3 * v_gl_id_6))],
+			   temp[((v_M_3 * (((-1 + v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
+					       ? (((-1 + v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
+						      ? (-1 + v_gl_id_6 + (v_gl_id_7 / v_M_3))
+						      : (-1 + v_N_4))
+					       : 0)) +
+				 (((v_gl_id_7 % v_M_3) >= 0)
+				      ? (((v_gl_id_7 % v_M_3) < v_M_3) ? (v_gl_id_7 % v_M_3)
+								       : (-1 + v_M_3))
+				      : 0))],
+			   temp[((v_M_3 * (((1 + v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
+					       ? (((1 + v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
+						      ? (1 + v_gl_id_6 + (v_gl_id_7 / v_M_3))
+						      : (-1 + v_N_4))
+					       : 0)) +
+				 (((v_gl_id_7 % v_M_3) >= 0)
+				      ? (((v_gl_id_7 % v_M_3) < v_M_3) ? (v_gl_id_7 % v_M_3)
+								       : (-1 + v_M_3))
+				      : 0))],
+			   temp[((v_M_3 * (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
+					       ? (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
+						      ? (v_gl_id_6 + (v_gl_id_7 / v_M_3))
+						      : (-1 + v_N_4))
+					       : 0)) +
+				 (((-1 + (v_gl_id_7 % v_M_3)) >= 0)
+				      ? (((-1 + (v_gl_id_7 % v_M_3)) < v_M_3)
+					     ? (-1 + (v_gl_id_7 % v_M_3))
+					     : (-1 + v_M_3))
+				      : 0))],
+			   temp[((v_M_3 * (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
+					       ? (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
+						      ? (v_gl_id_6 + (v_gl_id_7 / v_M_3))
+						      : (-1 + v_N_4))
+					       : 0)) +
+				 (((1 + (v_gl_id_7 % v_M_3)) >= 0)
+				      ? (((1 + (v_gl_id_7 % v_M_3)) < v_M_3)
+					     ? (1 + (v_gl_id_7 % v_M_3))
+					     : (-1 + v_M_3))
+				      : 0))],
+			   temp[((v_M_3 * (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
+					       ? (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
+						      ? (v_gl_id_6 + (v_gl_id_7 / v_M_3))
+						      : (-1 + v_N_4))
+					       : 0)) +
+				 (((v_gl_id_7 % v_M_3) >= 0)
+				      ? (((v_gl_id_7 % v_M_3) < v_M_3) ? (v_gl_id_7 % v_M_3)
+								       : (-1 + v_M_3))
+				      : 0))]);
+		       gold[(v_gl_id_7 + (v_M_3 * v_gl_id_6))] = id(v__5);
+	       }
+       }
+       */
+
+	//  correct version - taken from passing lift test
+	int v_M_0 = M;
+	int v_N_1 = N;
+	float v__19;
+	for (int v_gl_id_11 = 0; v_gl_id_11 < 8192; v_gl_id_11++) {
+		for (int v_gl_id_12 = 0; v_gl_id_12 < 8192; v_gl_id_12++) {
+			v__19 = rodiniaUserFun(
+			    power[(v_gl_id_12 + (v_M_0 * v_gl_id_11))],
+			    temp[((v_M_0 * (((-1 + v_gl_id_11) >= 0)
+						? (((-1 + v_gl_id_11) < v_N_1) ? (-1 + v_gl_id_11)
+									       : (-1 + v_N_1))
+						: 0)) +
+				  ((v_gl_id_12 >= 0)
+				       ? ((v_gl_id_12 < v_M_0) ? v_gl_id_12 : (-1 + v_M_0))
+				       : 0))],
+			    temp[((v_M_0 * (((1 + v_gl_id_11) >= 0)
+						? (((1 + v_gl_id_11) < v_N_1) ? (1 + v_gl_id_11)
+									      : (-1 + v_N_1))
+						: 0)) +
+				  ((v_gl_id_12 >= 0)
+				       ? ((v_gl_id_12 < v_M_0) ? v_gl_id_12 : (-1 + v_M_0))
+				       : 0))],
+			    temp[((v_M_0 * ((v_gl_id_11 >= 0)
+						? ((v_gl_id_11 < v_N_1) ? v_gl_id_11 : (-1 + v_N_1))
+						: 0)) +
+				  (((-1 + v_gl_id_12) >= 0)
+				       ? (((-1 + v_gl_id_12) < v_M_0) ? (-1 + v_gl_id_12)
+								      : (-1 + v_M_0))
+				       : 0))],
+			    temp[((v_M_0 * ((v_gl_id_11 >= 0)
+						? ((v_gl_id_11 < v_N_1) ? v_gl_id_11 : (-1 + v_N_1))
+						: 0)) +
+				  (((1 + v_gl_id_12) >= 0)
+				       ? (((1 + v_gl_id_12) < v_M_0) ? (1 + v_gl_id_12)
+								     : (-1 + v_M_0))
+				       : 0))],
+			    temp[((v_M_0 * ((v_gl_id_11 >= 0)
+						? ((v_gl_id_11 < v_N_1) ? v_gl_id_11 : (-1 + v_N_1))
+						: 0)) +
+				  ((v_gl_id_12 >= 0)
+				       ? ((v_gl_id_12 < v_M_0) ? v_gl_id_12 : (-1 + v_M_0))
+				       : 0))]);
+			gold[(v_gl_id_12 + (v_M_0 * v_gl_id_11))] = id(v__19);
+		}
 	}
 
 	File::save_input(gold, gold_file);
@@ -77,7 +200,7 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 		File::load_input(power, power_file);
 	} else {
 		std::cout << "load files and save as binary" << std::endl;
-		compute_gold(M, N, power, temp, gold, power_file, temp_file, gold_file);
+		compute_gold(M, N, temp, power, gold, temp_file, power_file, gold_file);
 	}
 
 	// validation function
