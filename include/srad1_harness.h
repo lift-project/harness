@@ -16,9 +16,9 @@
 using namespace std;
 
 void set_kernel_args(const shared_ptr<Run> run, const cl::Buffer &image_dev,
-                     const cl::Buffer &coeffs_dev, const size_t M, const size_t N) {
+		     const cl::Buffer &coeffs_dev, const size_t M, const size_t N) {
 	unsigned i = 0;
-        float q0sqr = 0.053787220269;
+	float q0sqr = 0.053787220269;
 	run->getKernel().setArg(i++, image_dev);
 	run->getKernel().setArg(i++, q0sqr);
 	run->getKernel().setArg(i++, coeffs_dev);
@@ -29,82 +29,22 @@ void set_kernel_args(const shared_ptr<Run> run, const cl::Buffer &image_dev,
 	run->getKernel().setArg(i++, static_cast<int>(N));
 }
 
-void compute_gold(const size_t M, const size_t N, Matrix<float> &image, 
-		  Matrix<float> &gold, const std::string &image_file,
-		  const std::string &gold_file) {
+void compute_gold(const size_t M, const size_t N, Matrix<float> &image, Matrix<float> &gold,
+		  const std::string &image_file, const std::string &gold_file) {
 
-	File::load_input_debug(gold, "../datasets/coeffs.txt");
-	File::load_input_debug(image, "../datasets/imagebefore.txt");
+	File::load_input_debug(
+	    gold, "/home/bastian/development/exploration/executor/datasets/srad_data/coeffs.txt");
+	File::load_input_debug(
+	    image,
+	    "/home/bastian/development/exploration/executor/datasets/srad_data/imagebefore.txt");
 
-
-	// taken from generated kernel
-        /*
-	float v__5;
-	int v_M_3 = M;
-	int v_N_4 = N;
-	for (int v_gl_id_6 = 0; v_gl_id_6 < 8192; v_gl_id_6++) {
-		for (int v_gl_id_7 = 0; v_gl_id_7 < 8192; v_gl_id_7++) {
-			v__5 = rodiniaUserFun(
-			    power[(v_gl_id_7 + (v_M_3 * v_gl_id_6))],
-			    temp[((v_M_3 * (((-1 + v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
-						? (((-1 + v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
-						       ? (-1 + v_gl_id_6 + (v_gl_id_7 / v_M_3))
-						       : (-1 + v_N_4))
-						: 0)) +
-				  (((v_gl_id_7 % v_M_3) >= 0)
-				       ? (((v_gl_id_7 % v_M_3) < v_M_3) ? (v_gl_id_7 % v_M_3)
-									: (-1 + v_M_3))
-				       : 0))],
-			    temp[((v_M_3 * (((1 + v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
-						? (((1 + v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
-						       ? (1 + v_gl_id_6 + (v_gl_id_7 / v_M_3))
-						       : (-1 + v_N_4))
-						: 0)) +
-				  (((v_gl_id_7 % v_M_3) >= 0)
-				       ? (((v_gl_id_7 % v_M_3) < v_M_3) ? (v_gl_id_7 % v_M_3)
-									: (-1 + v_M_3))
-				       : 0))],
-			    temp[((v_M_3 * (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
-						? (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
-						       ? (v_gl_id_6 + (v_gl_id_7 / v_M_3))
-						       : (-1 + v_N_4))
-						: 0)) +
-				  (((-1 + (v_gl_id_7 % v_M_3)) >= 0)
-				       ? (((-1 + (v_gl_id_7 % v_M_3)) < v_M_3)
-					      ? (-1 + (v_gl_id_7 % v_M_3))
-					      : (-1 + v_M_3))
-				       : 0))],
-			    temp[((v_M_3 * (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
-						? (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
-						       ? (v_gl_id_6 + (v_gl_id_7 / v_M_3))
-						       : (-1 + v_N_4))
-						: 0)) +
-				  (((1 + (v_gl_id_7 % v_M_3)) >= 0)
-				       ? (((1 + (v_gl_id_7 % v_M_3)) < v_M_3)
-					      ? (1 + (v_gl_id_7 % v_M_3))
-					      : (-1 + v_M_3))
-				       : 0))],
-			    temp[((v_M_3 * (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
-						? (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
-						       ? (v_gl_id_6 + (v_gl_id_7 / v_M_3))
-						       : (-1 + v_N_4))
-						: 0)) +
-				  (((v_gl_id_7 % v_M_3) >= 0)
-				       ? (((v_gl_id_7 % v_M_3) < v_M_3) ? (v_gl_id_7 % v_M_3)
-									: (-1 + v_M_3))
-				       : 0))]);
-			gold[(v_gl_id_7 + (v_M_3 * v_gl_id_6))] = id(v__5);
-		}
-	}
-*/
 	File::save_input(gold, gold_file);
 	File::save_input(image, image_file);
 }
 
 void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, const size_t N,
-		 const std::string &image_file,
-		 const std::string &gold_file, const bool force, const bool threaded,
-		 const bool binary) {
+		 const std::string &image_file, const std::string &gold_file, const bool force,
+		 const bool threaded, const bool binary) {
 
 	if (binary) std::cout << "Using precompiled binaries" << std::endl;
 
@@ -145,7 +85,7 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 	const size_t buf_size = image.size() * sizeof(float);
 	const size_t out_size = gold.size() * sizeof(float);
 	cl::Buffer image_dev = OpenCL::alloc(CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, buf_size,
-					    static_cast<void *>(image.data()));
+					     static_cast<void *>(image.data()));
 	cl::Buffer coeffs_dev = OpenCL::alloc(CL_MEM_READ_WRITE, out_size);
 
 	// multi-threaded exec
@@ -201,7 +141,7 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 	else {
 		for (auto &r : all_run) {
 			if (r->compile(binary)) {
-				set_kernel_args(r, image_dev,  coeffs_dev, M, N);
+				set_kernel_args(r, image_dev, coeffs_dev, M, N);
 				OpenCL::executeRun<float>(*r, coeffs_dev, gold.size(), validate);
 			}
 		}
