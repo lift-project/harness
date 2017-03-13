@@ -57,17 +57,9 @@ void compute_gold(const size_t M, const size_t N, Matrix<float> &temp, Matrix<fl
 				     "rodiniaData/lift_hotspot_temp_8192_nonBinary");
 	File::load_input_debug(power, "/home/bastian/development/exploration/executor/datasets/"
 				      "rodiniaData/lift_hotspot_power_8192_nonBinary");
-
-	std::cout << "TEMP:\n";
-	for (int i = 1024; i < 1034; i++) {
-		std::cout << temp[i] << "\n";
-	}
-	std::cout << "POWER:\n";
-	for (int i = 1024; i < 1034; i++) {
-		std::cout << power[i] << "\n";
-	}
-
+	/*
 	// taken from generated kernel
+	//
 	float v__5;
 	int v_M_3 = M;
 	int v_N_4 = N;
@@ -125,8 +117,8 @@ void compute_gold(const size_t M, const size_t N, Matrix<float> &temp, Matrix<fl
 			gold[(v_gl_id_7 + (v_M_3 * v_gl_id_6))] = id(v__5);
 		}
 	}
+	*/
 
-	/*
 	//  correct version - taken from passing lift test
 	int v_M_0 = M;
 	int v_N_1 = N;
@@ -172,7 +164,6 @@ void compute_gold(const size_t M, const size_t N, Matrix<float> &temp, Matrix<fl
 			gold[(v_gl_id_12 + (v_M_0 * v_gl_id_11))] = id(v__19);
 		}
 	}
-	*/
 
 	File::save_input(gold, gold_file);
 	File::save_input(temp, temp_file);
