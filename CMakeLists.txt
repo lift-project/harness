@@ -62,6 +62,7 @@ add_app(convolution)
 add_app(convolution2D)
 add_app(shocStencil2D)
 add_app(convolutionSeparableY)
+add_app(srad1)
 
 enable_testing()
 add_subdirectory(test)
