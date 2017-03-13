@@ -58,76 +58,75 @@ void compute_gold(const size_t M, const size_t N, Matrix<float> &temp, Matrix<fl
 	File::load_input_debug(power, "/home/bastian/development/exploration/executor/datasets/"
 				      "rodiniaData/lift_hotspot_power_8192_nonBinary");
 
-	/*
-	for (int i = 0; i < 10; i++) {
+	std::cout << "TEMP:\n";
+	for (int i = 1024; i < 1034; i++) {
 		std::cout << temp[i] << "\n";
 	}
-	for (int i = 0; i < 10; i++) {
+	std::cout << "POWER:\n";
+	for (int i = 1024; i < 1034; i++) {
 		std::cout << power[i] << "\n";
 	}
-	*/
 
 	// taken from generated kernel
-	/*
-       float v__5;
-       int v_M_3 = M;
-       int v_N_4 = N;
-       for (int v_gl_id_6 = 0; v_gl_id_6 < 8192; v_gl_id_6++) {
-	       for (int v_gl_id_7 = 0; v_gl_id_7 < 8192; v_gl_id_7++) {
-		       v__5 = rodiniaUserFun(
-			   power[(v_gl_id_7 + (v_M_3 * v_gl_id_6))],
-			   temp[((v_M_3 * (((-1 + v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
-					       ? (((-1 + v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
-						      ? (-1 + v_gl_id_6 + (v_gl_id_7 / v_M_3))
-						      : (-1 + v_N_4))
-					       : 0)) +
-				 (((v_gl_id_7 % v_M_3) >= 0)
-				      ? (((v_gl_id_7 % v_M_3) < v_M_3) ? (v_gl_id_7 % v_M_3)
-								       : (-1 + v_M_3))
-				      : 0))],
-			   temp[((v_M_3 * (((1 + v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
-					       ? (((1 + v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
-						      ? (1 + v_gl_id_6 + (v_gl_id_7 / v_M_3))
-						      : (-1 + v_N_4))
-					       : 0)) +
-				 (((v_gl_id_7 % v_M_3) >= 0)
-				      ? (((v_gl_id_7 % v_M_3) < v_M_3) ? (v_gl_id_7 % v_M_3)
-								       : (-1 + v_M_3))
-				      : 0))],
-			   temp[((v_M_3 * (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
-					       ? (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
-						      ? (v_gl_id_6 + (v_gl_id_7 / v_M_3))
-						      : (-1 + v_N_4))
-					       : 0)) +
-				 (((-1 + (v_gl_id_7 % v_M_3)) >= 0)
-				      ? (((-1 + (v_gl_id_7 % v_M_3)) < v_M_3)
-					     ? (-1 + (v_gl_id_7 % v_M_3))
-					     : (-1 + v_M_3))
-				      : 0))],
-			   temp[((v_M_3 * (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
-					       ? (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
-						      ? (v_gl_id_6 + (v_gl_id_7 / v_M_3))
-						      : (-1 + v_N_4))
-					       : 0)) +
-				 (((1 + (v_gl_id_7 % v_M_3)) >= 0)
-				      ? (((1 + (v_gl_id_7 % v_M_3)) < v_M_3)
-					     ? (1 + (v_gl_id_7 % v_M_3))
-					     : (-1 + v_M_3))
-				      : 0))],
-			   temp[((v_M_3 * (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
-					       ? (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
-						      ? (v_gl_id_6 + (v_gl_id_7 / v_M_3))
-						      : (-1 + v_N_4))
-					       : 0)) +
-				 (((v_gl_id_7 % v_M_3) >= 0)
-				      ? (((v_gl_id_7 % v_M_3) < v_M_3) ? (v_gl_id_7 % v_M_3)
-								       : (-1 + v_M_3))
-				      : 0))]);
-		       gold[(v_gl_id_7 + (v_M_3 * v_gl_id_6))] = id(v__5);
-	       }
-       }
-       */
+	float v__5;
+	int v_M_3 = M;
+	int v_N_4 = N;
+	for (int v_gl_id_6 = 0; v_gl_id_6 < 8192; v_gl_id_6++) {
+		for (int v_gl_id_7 = 0; v_gl_id_7 < 8192; v_gl_id_7++) {
+			v__5 = rodiniaUserFun(
+			    power[(v_gl_id_7 + (v_M_3 * v_gl_id_6))],
+			    temp[((v_M_3 * (((-1 + v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
+						? (((-1 + v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
+						       ? (-1 + v_gl_id_6 + (v_gl_id_7 / v_M_3))
+						       : (-1 + v_N_4))
+						: 0)) +
+				  (((v_gl_id_7 % v_M_3) >= 0)
+				       ? (((v_gl_id_7 % v_M_3) < v_M_3) ? (v_gl_id_7 % v_M_3)
+									: (-1 + v_M_3))
+				       : 0))],
+			    temp[((v_M_3 * (((1 + v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
+						? (((1 + v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
+						       ? (1 + v_gl_id_6 + (v_gl_id_7 / v_M_3))
+						       : (-1 + v_N_4))
+						: 0)) +
+				  (((v_gl_id_7 % v_M_3) >= 0)
+				       ? (((v_gl_id_7 % v_M_3) < v_M_3) ? (v_gl_id_7 % v_M_3)
+									: (-1 + v_M_3))
+				       : 0))],
+			    temp[((v_M_3 * (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
+						? (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
+						       ? (v_gl_id_6 + (v_gl_id_7 / v_M_3))
+						       : (-1 + v_N_4))
+						: 0)) +
+				  (((-1 + (v_gl_id_7 % v_M_3)) >= 0)
+				       ? (((-1 + (v_gl_id_7 % v_M_3)) < v_M_3)
+					      ? (-1 + (v_gl_id_7 % v_M_3))
+					      : (-1 + v_M_3))
+				       : 0))],
+			    temp[((v_M_3 * (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
+						? (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
+						       ? (v_gl_id_6 + (v_gl_id_7 / v_M_3))
+						       : (-1 + v_N_4))
+						: 0)) +
+				  (((1 + (v_gl_id_7 % v_M_3)) >= 0)
+				       ? (((1 + (v_gl_id_7 % v_M_3)) < v_M_3)
+					      ? (1 + (v_gl_id_7 % v_M_3))
+					      : (-1 + v_M_3))
+				       : 0))],
+			    temp[((v_M_3 * (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) >= 0)
+						? (((v_gl_id_6 + (v_gl_id_7 / v_M_3)) < v_N_4)
+						       ? (v_gl_id_6 + (v_gl_id_7 / v_M_3))
+						       : (-1 + v_N_4))
+						: 0)) +
+				  (((v_gl_id_7 % v_M_3) >= 0)
+				       ? (((v_gl_id_7 % v_M_3) < v_M_3) ? (v_gl_id_7 % v_M_3)
+									: (-1 + v_M_3))
+				       : 0))]);
+			gold[(v_gl_id_7 + (v_M_3 * v_gl_id_6))] = id(v__5);
+		}
+	}
 
+	/*
 	//  correct version - taken from passing lift test
 	int v_M_0 = M;
 	int v_N_1 = N;
@@ -173,6 +172,7 @@ void compute_gold(const size_t M, const size_t N, Matrix<float> &temp, Matrix<fl
 			gold[(v_gl_id_12 + (v_M_0 * v_gl_id_11))] = id(v__19);
 		}
 	}
+	*/
 
 	File::save_input(gold, gold_file);
 	File::save_input(temp, temp_file);
@@ -205,18 +205,21 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 
 	// validation function
 	auto validate = [&](const std::vector<float> &output) {
+		bool correct = true;
 		if (gold.size() != output.size()) return false;
 		for (unsigned i = 0; i < gold.size(); ++i) {
 			auto x = gold[i];
+			// auto x = temp[i];
 			auto y = output[i];
 
 			// possibly lots of floating point weirdness going on
-			if (abs(x - y) > 2.001f * max(abs(x), abs(y))) {
+			if (abs(x - y) > 0.001f * max(abs(x), abs(y))) {
 				cerr << "at " << i << ": " << x << "=/=" << y << std::endl;
 				return false;
+				// correct = false;
 			}
 		}
-		return true;
+		return correct;
 	};
 
 	// Allocating buffers
@@ -288,4 +291,4 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 	}
 };
 
-#endif // EXECUTOR_SHOCSTENCIL2D_HARNESS_H
+#endif // EXECUTOR_HOTSPOT_HARNESS_H
