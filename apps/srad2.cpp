@@ -34,9 +34,9 @@ int main(int argc, char *argv[]) {
 	    {'i', "iterations", "Execute each kernel 'iterations' times (default 10).", 10});
 
 	auto opt_size_m =
-	    op.addOption<std::size_t>({'m', "size-m", "M - number of rows (default 8194).", 8194});
+	    op.addOption<std::size_t>({'m', "size-m", "M - number of rows (default 438).", 502});
 	auto opt_size_n = op.addOption<std::size_t>(
-	    {'n', "size-n", "N - number of columns (default 8194).", 8194});
+	    {'n', "size-n", "N - number of columns (default 438).", 438});
 
 	auto opt_binary = op.addOption<bool>(
 	    {'b', "binary", "Load programs as binaries instead of compiling OpenCL-C source.",
