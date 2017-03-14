@@ -19,12 +19,12 @@
 #include <opencl_utils.h>
 
 // [local includes]
-#include "convolution2Drun.h"
-#include "srad1_harness.h"
+#include "run3D.h"
+#include "acoustic3D_harness.h"
 #include "options.h"
 
 int main(int argc, char *argv[]) {
-	OptParser op("Harness for Rodinias' SRAD Benchmark - Kernel1");
+	OptParser op("Harness for NESS Acoustic Room Simulation Benchmark");
 
 	auto opt_platform =
 	    op.addOption<unsigned>({'p', "platform", "OpenCL platform index (default 0).", 0});
@@ -34,9 +34,11 @@ int main(int argc, char *argv[]) {
 	    {'i', "iterations", "Execute each kernel 'iterations' times (default 10).", 10});
 
 	auto opt_size_m =
-	    op.addOption<std::size_t>({'m', "size-m", "M - number of rows (default 502).", 502});
+	    op.addOption<std::size_t>({'m', "size-m", "M - number of rows (default 512).", 512});
 	auto opt_size_n = op.addOption<std::size_t>(
-	    {'n', "size-n", "N - number of columns (default 438).", 438});
+	    {'n', "size-n", "N - number of columns (default 512).", 512});
+	auto opt_size_o = op.addOption<std::size_t>(
+	    {'o', "size-o", "O - z dimension (default 404).", 404});
 
 	auto opt_binary = op.addOption<bool>(
 	    {'b', "binary", "Load programs as binaries instead of compiling OpenCL-C source.",
@@ -58,25 +60,24 @@ int main(int argc, char *argv[]) {
 	// Option handling
 	const size_t M = opt_size_m->get();
 	const size_t N = opt_size_n->get();
+	const size_t O = opt_size_o->get();
 
 	// size string used for all .csv files,
 	// e.g., exec_[size_string].csv
-	auto size_string = to_string(M) + "_" + to_string(N);
-	if (M == N) {
-		size_string = to_string(M);
-	}
+	auto size_string = to_string(M) + "_" + to_string(N) + "_" + to_string(O);
 
 	File::set_size(size_string);
 
 	OpenCL::timeout = opt_timeout->get();
 
 	// temporary files
-	std::string gold_file = "/tmp/lift_srad1_gold_" + size_string;
-	std::string image_file = "/tmp/lift_srad1_image" + size_string;
+	std::string gold_file = "/tmp/lift_acoustic_gold_" + size_string;
+	std::string roomtminus1_file = "/tmp/lift_acoustic_roomtminus1" + size_string;
+	std::string roomt_file = "/tmp/lift_acoustic_roomt" + size_string;
 
 	if (opt_clean->get()) {
 		std::cout << "Cleaning..." << std::endl;
-		for (const auto &file : {gold_file, image_file})
+		for (const auto &file : {gold_file, roomtminus1_file, roomt_file})
 			std::remove(file.data());
 		return 0;
 	}
@@ -84,7 +85,7 @@ int main(int argc, char *argv[]) {
 	// === Loading exec CSV file ===
 	std::vector<std::shared_ptr<Run>> all_run =
 	    Csv::init([&](const std::vector<std::string> &values) -> std::shared_ptr<Run> {
-		    return std::shared_ptr<Run>(new Convolution2DRun(values, M, N));
+		    return std::shared_ptr<Run>(new Run3D(values, M, N, O));
 	    });
 	if (all_run.size() == 0) return 0;
 
@@ -92,6 +93,6 @@ int main(int argc, char *argv[]) {
 	OpenCL::init(opt_platform->get(), opt_device->get(), opt_iterations->get());
 
 	// run the harness
-	run_harness(all_run, M, N, image_file, gold_file, opt_force->get(),
+	run_harness(all_run, M, N, O, roomtminus1_file, roomt_file, gold_file, opt_force->get(),
 		    opt_threaded->get(), opt_binary->get());
 }

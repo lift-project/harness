@@ -65,6 +65,7 @@ add_app(shocStencil2D)
 add_app(convolutionSeparableY)
 add_app(srad1)
 add_app(srad2)
+add_app(acoustic3D)
 
 enable_testing()
 add_subdirectory(test)
