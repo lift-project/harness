@@ -16,8 +16,9 @@
 using namespace std;
 
 void set_kernel_args(const shared_ptr<Run> run, const cl::Buffer &image_dev,
-		     const cl::Buffer &coeffs_dev, const cl::Buffer &dn_dev,const cl::Buffer &ds_dev,const cl::Buffer &de_dev,const cl::Buffer &dw_dev, const cl::Buffer &output_dev, const size_t M,
-		     const size_t N) {
+		     const cl::Buffer &coeffs_dev, const cl::Buffer &dn_dev,
+		     const cl::Buffer &ds_dev, const cl::Buffer &de_dev, const cl::Buffer &dw_dev,
+		     const cl::Buffer &output_dev, const size_t M, const size_t N) {
 	unsigned i = 0;
 	run->getKernel().setArg(i++, image_dev);
 	run->getKernel().setArg(i++, coeffs_dev);
@@ -34,19 +35,19 @@ void set_kernel_args(const shared_ptr<Run> run, const cl::Buffer &image_dev,
 }
 
 void compute_gold(const size_t M, const size_t N, Matrix<float> &image, Matrix<float> &coeffs,
-                  Matrix<float> &dDN,Matrix<float> &dDS,Matrix<float> &dDE,Matrix<float> &dDW,
-		  Matrix<float> &gold, const std::string &image_file, const std::string &coeffs_file,
-                  const std::string &dDN_file,const std::string &dDS_file,const std::string &dDE_file,
-                  const std::string &dDW_file,
-		  const std::string &gold_file) {
+		  Matrix<float> &dDN, Matrix<float> &dDS, Matrix<float> &dDE, Matrix<float> &dDW,
+		  Matrix<float> &gold, const std::string &image_file,
+		  const std::string &coeffs_file, const std::string &dDN_file,
+		  const std::string &dDS_file, const std::string &dDE_file,
+		  const std::string &dDW_file, const std::string &gold_file) {
 
-        File::load_input_debug(gold,"../datasets/srad_data/finalImage.txt");
-	File::load_input_debug(image,"../datasets/srad_data/imagebefore.txt");
-	File::load_input_debug(coeffs,"../datasets/srad_data/coeffs.txt");
-	File::load_input_debug(dDN,"../datasets/srad_data/ddN.txt");
-	File::load_input_debug(dDS,"../datasets/srad_data/dDS.txt");
-	File::load_input_debug(dDE,"../datasets/srad_data/dDE.txt");
-	File::load_input_debug(dDW,"../datasets/srad_data/dDW.txt");
+	File::load_input_debug(gold, "../datasets/srad_data/finalImage.txt");
+	File::load_input_debug(image, "../datasets/srad_data/imagebefore.txt");
+	File::load_input_debug(coeffs, "../datasets/srad_data/coeffs.txt");
+	File::load_input_debug(dDN, "../datasets/srad_data/ddN.txt");
+	File::load_input_debug(dDS, "../datasets/srad_data/dDS.txt");
+	File::load_input_debug(dDE, "../datasets/srad_data/dDE.txt");
+	File::load_input_debug(dDW, "../datasets/srad_data/dDW.txt");
 
 	File::save_input(gold, gold_file);
 	File::save_input(image, image_file);
@@ -59,8 +60,8 @@ void compute_gold(const size_t M, const size_t N, Matrix<float> &image, Matrix<f
 
 void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, const size_t N,
 		 const std::string &image_file, const std::string &coeffs_file,
-                  const std::string &dDN_file,const std::string &dDS_file,const std::string &dDE_file,
-                  const std::string &dDW_file,
+		 const std::string &dDN_file, const std::string &dDS_file,
+		 const std::string &dDE_file, const std::string &dDW_file,
 		 const std::string &gold_file, const bool force, const bool threaded,
 		 const bool binary) {
 
@@ -78,8 +79,8 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 	// use existing grid, weights and gold or init them
 	if (File::is_file_exist(gold_file) && File::is_file_exist(image_file) &&
 	    File::is_file_exist(coeffs_file) && File::is_file_exist(dDN_file) &&
-            File::is_file_exist(dDS_file) && File::is_file_exist(dDE_file) &&
-            File::is_file_exist(dDW_file)) {
+	    File::is_file_exist(dDS_file) && File::is_file_exist(dDE_file) &&
+	    File::is_file_exist(dDW_file)) {
 		std::cout << "use existing grid, weights and gold" << std::endl;
 		File::load_input(gold, gold_file);
 		File::load_input(image, image_file);
@@ -90,7 +91,8 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 		File::load_input(dDW, dDW_file);
 	} else {
 		std::cout << "load files and save as binary" << std::endl;
-		compute_gold(M, N, image, coeffs, dDN, dDS, dDE, dDW, gold, image_file, coeffs_file, dDN_file, dDS_file, dDE_file, dDW_file, gold_file);
+		compute_gold(M, N, image, coeffs, dDN, dDS, dDE, dDW, gold, image_file, coeffs_file,
+			     dDN_file, dDS_file, dDE_file, dDW_file, gold_file);
 	}
 
 	// validation function
@@ -116,17 +118,17 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 	const size_t buf_size = image.size() * sizeof(float);
 	const size_t out_size = gold.size() * sizeof(float);
 	cl::Buffer image_dev = OpenCL::alloc(CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, buf_size,
-					    static_cast<void *>(image.data()));
+					     static_cast<void *>(image.data()));
 	cl::Buffer coeffs_dev = OpenCL::alloc(CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, buf_size,
-					     static_cast<void *>(coeffs.data()));
+					      static_cast<void *>(coeffs.data()));
 	cl::Buffer dDN_dev = OpenCL::alloc(CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, buf_size,
-					     static_cast<void *>(dDN.data()));
+					   static_cast<void *>(dDN.data()));
 	cl::Buffer dDS_dev = OpenCL::alloc(CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, buf_size,
-					     static_cast<void *>(dDS.data()));
+					   static_cast<void *>(dDS.data()));
 	cl::Buffer dDE_dev = OpenCL::alloc(CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, buf_size,
-					     static_cast<void *>(dDE.data()));
+					   static_cast<void *>(dDE.data()));
 	cl::Buffer dDW_dev = OpenCL::alloc(CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, buf_size,
-					     static_cast<void *>(dDW.data()));
+					   static_cast<void *>(dDW.data()));
 	cl::Buffer output_dev = OpenCL::alloc(CL_MEM_READ_WRITE, out_size);
 
 	// multi-threaded exec
@@ -166,7 +168,8 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 						ready_queue.pop();
 					}
 
-					set_kernel_args(r, image_dev, coeffs_dev, dDN_dev, dDS_dev, dDE_dev, dDW_dev, output_dev, M, N);
+					set_kernel_args(r, image_dev, coeffs_dev, dDN_dev, dDS_dev,
+							dDE_dev, dDW_dev, output_dev, M, N);
 					OpenCL::executeRun<float>(*r, output_dev, gold.size(),
 								  validate);
 				}
@@ -182,7 +185,8 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 	else {
 		for (auto &r : all_run) {
 			if (r->compile(binary)) {
-				set_kernel_args(r, image_dev, coeffs_dev,dDN_dev, dDS_dev, dDE_dev, dDW_dev, output_dev, M, N);
+				set_kernel_args(r, image_dev, coeffs_dev, dDN_dev, dDS_dev, dDE_dev,
+						dDW_dev, output_dev, M, N);
 				OpenCL::executeRun<float>(*r, output_dev, gold.size(), validate);
 			}
 		}
