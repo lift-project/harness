@@ -82,6 +82,8 @@ if(onlyLower == "true"): highLevelRewriteArgs += " --onlyLower"
 global0 = configParser.get('MemoryMappingRewrite', 'Global0')
 global01 = configParser.get('MemoryMappingRewrite', 'Global01')
 global10 = configParser.get('MemoryMappingRewrite', 'Global10')
+global012 = configParser.get('MemoryMappingRewrite', 'Global012')
+global210 = configParser.get('MemoryMappingRewrite', 'Global210')
 group0 = configParser.get('MemoryMappingRewrite', 'Group0')
 group01 = configParser.get('MemoryMappingRewrite', 'Group01')
 group10 = configParser.get('MemoryMappingRewrite', 'Group10')
@@ -89,6 +91,8 @@ memoryMappingRewriteArgs = ""
 if(global0 == "true"): memoryMappingRewriteArgs += " --global0"
 if(global01 == "true"): memoryMappingRewriteArgs += " --global01"
 if(global10 == "true"): memoryMappingRewriteArgs += " --global10"
+if(global012 == "true"): memoryMappingRewriteArgs += " --global012"
+if(global210 == "true"): memoryMappingRewriteArgs += " --global210"
 if(group0 == "true"): memoryMappingRewriteArgs += " --group0"
 if(group01 == "true"): memoryMappingRewriteArgs += " --group01"
 if(group10 == "true"): memoryMappingRewriteArgs += " --group10"

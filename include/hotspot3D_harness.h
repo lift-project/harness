@@ -19,14 +19,14 @@ void set_kernel_args(const shared_ptr<Run> run, const cl::Buffer &temp_dev,
 		     const cl::Buffer &power_dev, const cl::Buffer &output_dev, const size_t M,
 		     const size_t N, const size_t O) {
 	unsigned i = 0;
-        float ce = 8.3333325E-6;
-        float cw = 8.3333325E-6;
-        float cn = 8.3333325E-6;
-        float cs = 8.3333325E-6;
-        float ct = 2.6666664E-4;
-        float cb = 2.6666664E-4;
-        float cc = 0.99916667;
-        float stepDivCap = 8.3333325E-5;
+	float ce = 8.3333325E-6;
+	float cw = 8.3333325E-6;
+	float cn = 8.3333325E-6;
+	float cs = 8.3333325E-6;
+	float ct = 2.6666664E-4;
+	float cb = 2.6666664E-4;
+	float cc = 0.99916667;
+	float stepDivCap = 8.3333325E-5;
 	run->getKernel().setArg(i++, temp_dev);
 	run->getKernel().setArg(i++, power_dev);
 	run->getKernel().setArg(i++, ce);
@@ -46,55 +46,181 @@ void set_kernel_args(const shared_ptr<Run> run, const cl::Buffer &temp_dev,
 	run->getKernel().setArg(i++, static_cast<int>(O));
 }
 
-float calculateHotspot(float tInC, float cc, float tInN, float cn, float tInS, float cs, float tInE, float ce, float tInW, float cw, float tInT, float ct, float tInB, float cb, float stepDivCap, float pInC, float amb_temp){ return  tInC*cc + tInN*cn + tInS*cs + tInE*ce + tInW*cw + tInT*ct + tInB*cb + stepDivCap * pInC + ct*amb_temp;     
+float calculateHotspot(float tInC, float cc, float tInN, float cn, float tInS, float cs, float tInE,
+		       float ce, float tInW, float cw, float tInT, float ct, float tInB, float cb,
+		       float stepDivCap, float pInC, float amb_temp) {
+	return tInC * cc + tInN * cn + tInS * cs + tInE * ce + tInW * cw + tInT * ct + tInB * cb +
+	       stepDivCap * pInC + ct * amb_temp;
 }
 
+float id(float x) { return x; }
 
-float id(float x) {
-	return x; 
-}
+void compute_gold(const size_t M, const size_t N, const size_t O, Matrix<float> &temp,
+		  Matrix<float> &power, Matrix<float> &gold, const std::string &temp_file,
+		  const std::string &power_file, const std::string &gold_file) {
 
-void compute_gold(const size_t M, const size_t N, const size_t O, Matrix<float> &temp, Matrix<float> &power,
-		  Matrix<float> &gold, const std::string &temp_file, const std::string &power_file,
-		  const std::string &gold_file) {
+	File::load_input_debug(temp,
+			       "/home/bastian/development/exploration/datasets/hotspot3D/temp.txt");
+	File::load_input_debug(
+	    power, "/home/bastian/development/exploration/datasets/hotspot3D/power.txt");
+	File::load_input_debug(
+	    gold, "/home/bastian/development/exploration/datasets/hotspot3D/hotspot3D.txt");
 
-	 File::load_input_debug(gold,"/home/bastian/development/exploration/executor/datasets/hotspot3D/hotspot3D.txt");
-	File::load_input_debug(temp, "/home/bastian/development/exploration/executor/datasets/hotspot3D/temp.txt");
-	File::load_input_debug(power, "/home/bastian/development/exploration/executor/datasets/hotspot3D/power.txt");
+	int v_O_5 = O; // 8
+	int v_N_4 = N; // 512
+	int v_M_3 = M; // 512
+	float v__60 = 8.3333325E-6;
+	float v__61 = 8.3333325E-6;
+	float v__62 = 8.3333325E-6;
+	float v__63 = 8.3333325E-6;
+	float v__64 = 2.6666664E-4;
+	float v__65 = 2.6666664E-4;
+	float v__66 = 0.99916667;
+	float v__67 = 8.3333325E-5;
 
-    int v_O_5 = O; // 8
-    int v_N_4 = N; // 512
-    int v_M_3 = M; // 512
-    float v__60 = 8.3333325E-6;
-    float v__61 = 8.3333325E-6;
-    float v__62 = 8.3333325E-6;
-    float v__63 = 8.3333325E-6;
-    float v__64 = 2.6666664E-4;
-    float v__65 = 2.6666664E-4;
-    float v__66 = 0.99916667;
-    float v__67 = 8.3333325E-5;
+	float v__72;
+	float v__74;
+	for (int v_gl_id_55 = 0; v_gl_id_55 < v_O_5; v_gl_id_55++) {
+		for (int v_gl_id_56 = 0; v_gl_id_56 < v_N_4; v_gl_id_56++) {
+			for (int v_gl_id_57 = 0; v_gl_id_57 < v_M_3; v_gl_id_57++) {
+				float v_tmp_84 = 80.0f;
+				v__72 = v_tmp_84;
+				v__74 = calculateHotspot(
+				    temp[((v_M_3 * v_N_4 *
+					   ((v_gl_id_55 >= 0)
+						? ((v_gl_id_55 < v_O_5)
+						       ? v_gl_id_55
+						       : (-1 + (2 * v_O_5) + (-1 * v_gl_id_55)))
+						: (-1 + (-1 * v_gl_id_55)))) +
+					  (v_M_3 * ((v_gl_id_56 >= 0) ? ((v_gl_id_56 < v_N_4)
+									     ? v_gl_id_56
+									     : (-1 + (2 * v_N_4) +
+										(-1 * v_gl_id_56)))
+								      : (-1 + (-1 * v_gl_id_56)))) +
+					  ((v_gl_id_57 >= 0)
+					       ? ((v_gl_id_57 < v_M_3)
+						      ? v_gl_id_57
+						      : (-1 + (2 * v_M_3) + (-1 * v_gl_id_57)))
+					       : (-1 + (-1 * v_gl_id_57))))],
+				    v__66,
+				    temp[((v_M_3 * v_N_4 *
+					   ((v_gl_id_55 >= 0)
+						? ((v_gl_id_55 < v_O_5)
+						       ? v_gl_id_55
+						       : (-1 + (2 * v_O_5) + (-1 * v_gl_id_55)))
+						: (-1 + (-1 * v_gl_id_55)))) +
+					  (v_M_3 * (((-1 + v_gl_id_56) >= 0)
+							? (((-1 + v_gl_id_56) < v_N_4)
+							       ? (-1 + v_gl_id_56)
+							       : ((-1 * v_gl_id_56) + (2 * v_N_4)))
+							: (-1 * v_gl_id_56))) +
+					  ((v_gl_id_57 >= 0)
+					       ? ((v_gl_id_57 < v_M_3)
+						      ? v_gl_id_57
+						      : (-1 + (2 * v_M_3) + (-1 * v_gl_id_57)))
+					       : (-1 + (-1 * v_gl_id_57))))],
+				    v__62,
+				    temp[((v_M_3 * v_N_4 *
+					   ((v_gl_id_55 >= 0)
+						? ((v_gl_id_55 < v_O_5)
+						       ? v_gl_id_55
+						       : (-1 + (2 * v_O_5) + (-1 * v_gl_id_55)))
+						: (-1 + (-1 * v_gl_id_55)))) +
+					  (v_M_3 *
+					   (((1 + v_gl_id_56) >= 0)
+						? (((1 + v_gl_id_56) < v_N_4)
+						       ? (1 + v_gl_id_56)
+						       : (-2 + (2 * v_N_4) + (-1 * v_gl_id_56)))
+						: (-2 + (-1 * v_gl_id_56)))) +
+					  ((v_gl_id_57 >= 0)
+					       ? ((v_gl_id_57 < v_M_3)
+						      ? v_gl_id_57
+						      : (-1 + (2 * v_M_3) + (-1 * v_gl_id_57)))
+					       : (-1 + (-1 * v_gl_id_57))))],
+				    v__63,
+				    temp[((v_M_3 * v_N_4 *
+					   (((1 + v_gl_id_55) >= 0)
+						? (((1 + v_gl_id_55) < v_O_5)
+						       ? (1 + v_gl_id_55)
+						       : (-2 + (2 * v_O_5) + (-1 * v_gl_id_55)))
+						: (-2 + (-1 * v_gl_id_55)))) +
+					  (v_M_3 * ((v_gl_id_56 >= 0) ? ((v_gl_id_56 < v_N_4)
+									     ? v_gl_id_56
+									     : (-1 + (2 * v_N_4) +
+										(-1 * v_gl_id_56)))
+								      : (-1 + (-1 * v_gl_id_56)))) +
+					  ((v_gl_id_57 >= 0)
+					       ? ((v_gl_id_57 < v_M_3)
+						      ? v_gl_id_57
+						      : (-1 + (2 * v_M_3) + (-1 * v_gl_id_57)))
+					       : (-1 + (-1 * v_gl_id_57))))],
+				    v__60,
+				    temp[((v_M_3 * v_N_4 *
+					   (((-1 + v_gl_id_55) >= 0)
+						? (((-1 + v_gl_id_55) < v_O_5)
+						       ? (-1 + v_gl_id_55)
+						       : ((-1 * v_gl_id_55) + (2 * v_O_5)))
+						: (-1 * v_gl_id_55))) +
+					  (v_M_3 * ((v_gl_id_56 >= 0) ? ((v_gl_id_56 < v_N_4)
+									     ? v_gl_id_56
+									     : (-1 + (2 * v_N_4) +
+										(-1 * v_gl_id_56)))
+								      : (-1 + (-1 * v_gl_id_56)))) +
+					  ((v_gl_id_57 >= 0)
+					       ? ((v_gl_id_57 < v_M_3)
+						      ? v_gl_id_57
+						      : (-1 + (2 * v_M_3) + (-1 * v_gl_id_57)))
+					       : (-1 + (-1 * v_gl_id_57))))],
+				    v__61,
+				    temp[((v_M_3 * v_N_4 *
+					   ((v_gl_id_55 >= 0)
+						? ((v_gl_id_55 < v_O_5)
+						       ? v_gl_id_55
+						       : (-1 + (2 * v_O_5) + (-1 * v_gl_id_55)))
+						: (-1 + (-1 * v_gl_id_55)))) +
+					  (v_M_3 * ((v_gl_id_56 >= 0) ? ((v_gl_id_56 < v_N_4)
+									     ? v_gl_id_56
+									     : (-1 + (2 * v_N_4) +
+										(-1 * v_gl_id_56)))
+								      : (-1 + (-1 * v_gl_id_56)))) +
+					  (((1 + v_gl_id_57) >= 0)
+					       ? (((1 + v_gl_id_57) < v_M_3)
+						      ? (1 + v_gl_id_57)
+						      : (-2 + (2 * v_M_3) + (-1 * v_gl_id_57)))
+					       : (-2 + (-1 * v_gl_id_57))))],
+				    v__64,
+				    temp[((v_M_3 * v_N_4 *
+					   ((v_gl_id_55 >= 0)
+						? ((v_gl_id_55 < v_O_5)
+						       ? v_gl_id_55
+						       : (-1 + (2 * v_O_5) + (-1 * v_gl_id_55)))
+						: (-1 + (-1 * v_gl_id_55)))) +
+					  (v_M_3 * ((v_gl_id_56 >= 0) ? ((v_gl_id_56 < v_N_4)
+									     ? v_gl_id_56
+									     : (-1 + (2 * v_N_4) +
+										(-1 * v_gl_id_56)))
+								      : (-1 + (-1 * v_gl_id_56)))) +
+					  (((-1 + v_gl_id_57) >= 0)
+					       ? (((-1 + v_gl_id_57) < v_M_3)
+						      ? (-1 + v_gl_id_57)
+						      : ((-1 * v_gl_id_57) + (2 * v_M_3)))
+					       : (-1 * v_gl_id_57)))],
+				    v__65, v__67, power[(v_gl_id_57 + (v_M_3 * v_N_4 * v_gl_id_55) +
+							 (v_M_3 * v_gl_id_56))],
+				    v__72);
+				gold[(v_gl_id_57 + (v_M_3 * v_N_4 * v_gl_id_55) +
+				      (v_M_3 * v_gl_id_56))] = id(v__74);
+			}
+		}
+	}
 
-  float v__72;
-  float v__74;
-  for (int v_gl_id_55 = 0;v_gl_id_55<v_O_5;v_gl_id_55++){
-    for (int v_gl_id_56 = 0;v_gl_id_56<v_N_4;v_gl_id_56++){
-      for (int v_gl_id_57 = 0;v_gl_id_57<v_M_3;v_gl_id_57++){
-        float v_tmp_84 = 80.0f;
-        v__72 = v_tmp_84;
-        v__74 = calculateHotspot(temp[((v_M_3 * v_N_4 * ( (v_gl_id_55 >= 0) ? ( (v_gl_id_55 < v_O_5) ? v_gl_id_55 : (-1 + (2 * v_O_5) + (-1 * v_gl_id_55)) ) : (-1 + (-1 * v_gl_id_55)) )) + (v_M_3 * ( (v_gl_id_56 >= 0) ? ( (v_gl_id_56 < v_N_4) ? v_gl_id_56 : (-1 + (2 * v_N_4) + (-1 * v_gl_id_56)) ) : (-1 + (-1 * v_gl_id_56)) )) + ( (v_gl_id_57 >= 0) ? ( (v_gl_id_57 < v_M_3) ? v_gl_id_57 : (-1 + (2 * v_M_3) + (-1 * v_gl_id_57)) ) : (-1 + (-1 * v_gl_id_57)) ))], v__66, temp[((v_M_3 * v_N_4 * ( (v_gl_id_55 >= 0) ? ( (v_gl_id_55 < v_O_5) ? v_gl_id_55 : (-1 + (2 * v_O_5) + (-1 * v_gl_id_55)) ) : (-1 + (-1 * v_gl_id_55)) )) + (v_M_3 * ( ((-1 + v_gl_id_56) >= 0) ? ( ((-1 + v_gl_id_56) < v_N_4) ? (-1 + v_gl_id_56) : ((-1 * v_gl_id_56) + (2 * v_N_4)) ) : (-1 * v_gl_id_56) )) + ( (v_gl_id_57 >= 0) ? ( (v_gl_id_57 < v_M_3) ? v_gl_id_57 : (-1 + (2 * v_M_3) + (-1 * v_gl_id_57)) ) : (-1 + (-1 * v_gl_id_57)) ))], v__62, temp[((v_M_3 * v_N_4 * ( (v_gl_id_55 >= 0) ? ( (v_gl_id_55 < v_O_5) ? v_gl_id_55 : (-1 + (2 * v_O_5) + (-1 * v_gl_id_55)) ) : (-1 + (-1 * v_gl_id_55)) )) + (v_M_3 * ( ((1 + v_gl_id_56) >= 0) ? ( ((1 + v_gl_id_56) < v_N_4) ? (1 + v_gl_id_56) : (-2 + (2 * v_N_4) + (-1 * v_gl_id_56)) ) : (-2 + (-1 * v_gl_id_56)) )) + ( (v_gl_id_57 >= 0) ? ( (v_gl_id_57 < v_M_3) ? v_gl_id_57 : (-1 + (2 * v_M_3) + (-1 * v_gl_id_57)) ) : (-1 + (-1 * v_gl_id_57)) ))], v__63, temp[((v_M_3 * v_N_4 * ( ((1 + v_gl_id_55) >= 0) ? ( ((1 + v_gl_id_55) < v_O_5) ? (1 + v_gl_id_55) : (-2 + (2 * v_O_5) + (-1 * v_gl_id_55)) ) : (-2 + (-1 * v_gl_id_55)) )) + (v_M_3 * ( (v_gl_id_56 >= 0) ? ( (v_gl_id_56 < v_N_4) ? v_gl_id_56 : (-1 + (2 * v_N_4) + (-1 * v_gl_id_56)) ) : (-1 + (-1 * v_gl_id_56)) )) + ( (v_gl_id_57 >= 0) ? ( (v_gl_id_57 < v_M_3) ? v_gl_id_57 : (-1 + (2 * v_M_3) + (-1 * v_gl_id_57)) ) : (-1 + (-1 * v_gl_id_57)) ))], v__60, temp[((v_M_3 * v_N_4 * ( ((-1 + v_gl_id_55) >= 0) ? ( ((-1 + v_gl_id_55) < v_O_5) ? (-1 + v_gl_id_55) : ((-1 * v_gl_id_55) + (2 * v_O_5)) ) : (-1 * v_gl_id_55) )) + (v_M_3 * ( (v_gl_id_56 >= 0) ? ( (v_gl_id_56 < v_N_4) ? v_gl_id_56 : (-1 + (2 * v_N_4) + (-1 * v_gl_id_56)) ) : (-1 + (-1 * v_gl_id_56)) )) + ( (v_gl_id_57 >= 0) ? ( (v_gl_id_57 < v_M_3) ? v_gl_id_57 : (-1 + (2 * v_M_3) + (-1 * v_gl_id_57)) ) : (-1 + (-1 * v_gl_id_57)) ))], v__61, temp[((v_M_3 * v_N_4 * ( (v_gl_id_55 >= 0) ? ( (v_gl_id_55 < v_O_5) ? v_gl_id_55 : (-1 + (2 * v_O_5) + (-1 * v_gl_id_55)) ) : (-1 + (-1 * v_gl_id_55)) )) + (v_M_3 * ( (v_gl_id_56 >= 0) ? ( (v_gl_id_56 < v_N_4) ? v_gl_id_56 : (-1 + (2 * v_N_4) + (-1 * v_gl_id_56)) ) : (-1 + (-1 * v_gl_id_56)) )) + ( ((1 + v_gl_id_57) >= 0) ? ( ((1 + v_gl_id_57) < v_M_3) ? (1 + v_gl_id_57) : (-2 + (2 * v_M_3) + (-1 * v_gl_id_57)) ) : (-2 + (-1 * v_gl_id_57)) ))], v__64, temp[((v_M_3 * v_N_4 * ( (v_gl_id_55 >= 0) ? ( (v_gl_id_55 < v_O_5) ? v_gl_id_55 : (-1 + (2 * v_O_5) + (-1 * v_gl_id_55)) ) : (-1 + (-1 * v_gl_id_55)) )) + (v_M_3 * ( (v_gl_id_56 >= 0) ? ( (v_gl_id_56 < v_N_4) ? v_gl_id_56 : (-1 + (2 * v_N_4) + (-1 * v_gl_id_56)) ) : (-1 + (-1 * v_gl_id_56)) )) + ( ((-1 + v_gl_id_57) >= 0) ? ( ((-1 + v_gl_id_57) < v_M_3) ? (-1 + v_gl_id_57) : ((-1 * v_gl_id_57) + (2 * v_M_3)) ) : (-1 * v_gl_id_57) ))], v__65, v__67, power[(v_gl_id_57 + (v_M_3 * v_N_4 * v_gl_id_55) + (v_M_3 * v_gl_id_56))], v__72);
-        gold[(v_gl_id_57 + (v_M_3 * v_N_4 * v_gl_id_55) + (v_M_3 * v_gl_id_56))] = id(v__74);
-      }
-    }
-  }
-	
-        File::save_input(gold, gold_file);
+	File::save_input(gold, gold_file);
 	File::save_input(temp, temp_file);
 	File::save_input(power, power_file);
 }
 
 void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, const size_t N,
-                 const size_t O,
-		 const std::string &temp_file, const std::string &power_file,
+		 const size_t O, const std::string &temp_file, const std::string &power_file,
 		 const std::string &gold_file, const bool force, const bool threaded,
 		 const bool binary) {
 
@@ -182,7 +308,8 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M, con
 						ready_queue.pop();
 					}
 
-					set_kernel_args(r, temp_dev, power_dev, output_dev, M, N, O);
+					set_kernel_args(r, temp_dev, power_dev, output_dev, M, N,
+							O);
 					OpenCL::executeRun<float>(*r, output_dev, gold.size(),
 								  validate);
 				}
