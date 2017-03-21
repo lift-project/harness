@@ -16,6 +16,7 @@ namespace pt = boost::property_tree;
 
 using namespace std;
 
+string input_file_folder;
 vector<int> size_arguments;
 vector<pair<string,long>> inputs;
 size_t output_size;
@@ -29,8 +30,8 @@ void load_inputs(vector<pair<string,long>>& inputs) {
 
   for (auto& pair : inputs) {
 
-    auto& filename = pair.first;
-    auto& size = pair.second;
+    auto filename = input_file_folder + "/" + pair.first;
+    auto size = pair.second;
 
     vector<float> contents;
     auto num_elements = size / sizeof(float);
@@ -237,6 +238,8 @@ int main(int argc, const char *const *argv) {
       ("help,h", "Produce this message")
       ("file,f", po::value<string>(&input_file)->required(),
           "The input configuration file.")
+      ("folder", po::value<string>(&input_file_folder)->default_value("."),
+          "The folder where to look for input data files.")
       ("platform,p", po::value<unsigned>(&platform)->default_value(0),
           "OpenCL platform index")
       ("device,d", po::value<unsigned>(&device)->default_value(0),
