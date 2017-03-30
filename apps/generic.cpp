@@ -76,7 +76,6 @@ void load_configuration(const string& filename) {
 
   }
 
-  load_inputs(inputs);
 
 }
 
@@ -91,10 +90,15 @@ void execute(function<bool(const vector<float>&)> validate,
 void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
     const bool threaded, const bool binary) {
 
-	if (binary) cout << "Using precompiled binaries" << endl;
+  if (all_run.size() <= 0)
+    return;
 
-	// validation function
-	auto validate = [&](const std::vector<float> &output) { return true; };
+  if (binary) cout << "Using precompiled binaries" << endl;
+
+  load_inputs(inputs);
+
+  // validation function
+  auto validate = [&](const std::vector<float> &output) { return true; };
 
   // TODO: inputs?? mix of buffers and the rest
 
@@ -108,37 +112,37 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
 
   }
 
-	// Allocating buffers
-	cl::Buffer output_dev = OpenCL::alloc(CL_MEM_READ_WRITE, output_size);
+  // Allocating buffers
+  cl::Buffer output_dev = OpenCL::alloc(CL_MEM_READ_WRITE, output_size);
 
-	// multi-threaded exec
-	if (threaded) {
-		mutex m;
-		condition_variable cv;
+  // multi-threaded exec
+  if (threaded) {
+    mutex m;
+    condition_variable cv;
 
-		bool done = false;
-		bool ready = false;
-		queue<std::shared_ptr<Run>> ready_queue;
+    bool done = false;
+    bool ready = false;
+    queue<std::shared_ptr<Run>> ready_queue;
 
-		// compilation thread
-		auto compilation_thread = std::thread([&] {
-			for (auto &r : all_run) {
-				if (r->compile(binary)) {
-					unique_lock<std::mutex> locker(m);
-					ready_queue.push(r);
-					ready = true;
-					cv.notify_one();
-				}
-			}
-		});
+    // compilation thread
+    auto compilation_thread = std::thread([&] {
+        for (auto &r : all_run) {
+        if (r->compile(binary)) {
+        unique_lock<std::mutex> locker(m);
+        ready_queue.push(r);
+        ready = true;
+        cv.notify_one();
+        }
+        }
+        });
 
-		auto execute_thread = std::thread([&] {
-			std::shared_ptr<Run> r = nullptr;
-			while (!done) {
-				{
-					std::unique_lock<std::mutex> locker(m);
-					while (!ready && !done)
-						cv.wait(locker);
+    auto execute_thread = std::thread([&] {
+        std::shared_ptr<Run> r = nullptr;
+        while (!done) {
+        {
+        std::unique_lock<std::mutex> locker(m);
+        while (!ready && !done)
+        cv.wait(locker);
         }
 
         while (!ready_queue.empty()) {
@@ -150,16 +154,16 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
 
           execute(validate, input_buffers, output_dev, r);
         }
-			}
-		});
+        }
+        });
 
-		compilation_thread.join();
-		done = true;
-		cv.notify_one();
-		execute_thread.join();
-	}
-	// single threaded exec
-	else {
+    compilation_thread.join();
+    done = true;
+    cv.notify_one();
+    execute_thread.join();
+  }
+  // single threaded exec
+  else {
     for (auto &r : all_run) {
 
       if (r->compile(binary))
