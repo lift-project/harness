@@ -65,6 +65,7 @@ void load_configuration(const string& filename) {
   for (auto& size : tree.get_child("sizes"))
     size_arguments.push_back(size.second.get_value<int>());
 
+  // TODO: optional reference output
   output_size = tree.get<size_t>("output");
 
   for (auto& input : tree.get_child("inputs")) {
@@ -98,9 +99,11 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
   load_inputs(inputs);
 
   // validation function
+  // TODO: Compare to reference if provided
   auto validate = [&](const std::vector<float> &output) { return true; };
 
   // TODO: inputs?? mix of buffers and the rest
+  // TODO: Other data types
 
   vector<cl::Buffer> input_buffers;
 
@@ -126,23 +129,23 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
 
     // compilation thread
     auto compilation_thread = std::thread([&] {
-        for (auto &r : all_run) {
+      for (auto &r : all_run) {
         if (r->compile(binary)) {
-        unique_lock<std::mutex> locker(m);
-        ready_queue.push(r);
-        ready = true;
-        cv.notify_one();
+          unique_lock<std::mutex> locker(m);
+          ready_queue.push(r);
+          ready = true;
+          cv.notify_one();
         }
-        }
-        });
+      }
+    });
 
     auto execute_thread = std::thread([&] {
-        std::shared_ptr<Run> r = nullptr;
-        while (!done) {
+      std::shared_ptr<Run> r = nullptr;
+      while (!done) {
         {
-        std::unique_lock<std::mutex> locker(m);
-        while (!ready && !done)
-        cv.wait(locker);
+          std::unique_lock<std::mutex> locker(m);
+          while (!ready && !done)
+            cv.wait(locker);
         }
 
         while (!ready_queue.empty()) {
@@ -154,8 +157,8 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
 
           execute(validate, input_buffers, output_dev, r);
         }
-        }
-        });
+      }
+    });
 
     compilation_thread.join();
     done = true;
