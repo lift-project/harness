@@ -9,16 +9,16 @@ import time
 import configparser
 import calendar
 
-# README ###########################################################
+### README ###########################################################
 # Script to start exploration run for a Lift high-level expression
 #
 # Requirements:
 #       * ParameterRewrite settings need to be in LIFT/highLevel/
 #
-####################################################################
+######################################################################
 
-# ARGPARSER ########################################################
-parser = argparse.ArgumentParser( description='Full exploration run for a Lift high-level expression.')
+### ARGPARSER ########################################################
+parser = argparse.ArgumentParser( description='Lift exploration utility')
 parser.add_argument('--clean', dest='clean', action='store_true',
         help='clean all generated folders and log-files')
 parser.add_argument('--highLevelRewrite', dest='highLevelRewrite', action='store_true',
@@ -45,8 +45,6 @@ parser.add_argument('--removeBlacklist', dest='removeBlacklist', action='store_t
         help='remove blacklisted files to enable re-running things')
 parser.add_argument('config', action='store', default='config',
         help='config file')
-
-
 args = parser.parse_args()
 
 # CONFIG (PARSER) ##################################################
@@ -56,14 +54,12 @@ configParser = configparser.RawConfigParser()
 configParser.read(args.config)
 
 ### GENERAL
-#lift = os.environ["LIFT"]
-#executor = os.environ["EXECUTOR"]
 lift = configParser.get('General', 'Lift')
 executor = configParser.get('General', 'Executor')
 expression = configParser.get('General', 'Expression')
 inputSize = configParser.get('General', 'InputSize')
-suffix = configParser.get('General', 'Name')
-if (suffix == ""): suffix = str(calendar.timegm(time.gmtime()))
+name = configParser.get('General', 'Name')
+if (name == ""): name = str(calendar.timegm(time.gmtime()))
 #secondsSinceEpoch = str(calendar.timegm(time.gmtime()))
 
 ### HIGH-LEVEL-REWRITE
@@ -103,11 +99,11 @@ exploreNDRange = configParser.get('ParameterRewrite', 'ExploreNDRange')
 sampleNDRange = configParser.get('ParameterRewrite', 'SampleNDRange')
 injectNDRange = configParser.get('ParameterRewrite', 'injectNDRange')
 sequential = configParser.get('ParameterRewrite', 'Sequential')
-parameterRewriteArgs = " --file " + lift + "/highLevel/" + settings 
-if(exploreNDRange == "true"): parameterRewriteArgs += " --exploreNDRange"
+parameterRewriteArgs = " --file " + lift + "highLevel/" + settings 
 if(sequential == "true"): parameterRewriteArgs += " --sequential"
 if(injectNDRange == "true"): parameterRewriteArgs += " --injectNDRange"
-if not (sampleNDRange == ""): parameterRewriteArgs += " --sampleNDRange " + sampleNDRange
+if(exploreNDRange == "true"): parameterRewriteArgs += " --exploreNDRange"
+if (exploreNDRange == "true")and not (sampleNDRange == ""): parameterRewriteArgs += " --sampleNDRange " + sampleNDRange
 
 ### HARNESSS
 harness = configParser.get('Harness', 'Name')
@@ -118,17 +114,18 @@ harnessArgs = " " + configParser.get('Harness', 'Args')
 ### CSV
 #csvHeader = "kernel,time,lsize0,lsize1,lsize2"
 csvHeader = configParser.get('CSV', 'Header')
-epochTimeCsv = "time_" + inputSize +  "_" + suffix + ".csv"
+epochTimeCsv = "time_" + inputSize +  "_" + name + ".csv"
 timeCsv = "time_" + inputSize + ".csv"
 blacklistCsv = "blacklist_" + inputSize + ".csv"
 
 ### R
 Rscript = configParser.get('R', 'Script')
-output = expression + "_" + inputSize +  "_" + suffix + ".pdf"
+output = expression + "_" + inputSize +  "_" + name + ".pdf"
 RscriptArgs = " --file " + epochTimeCsv + " --out " + output
 
 ### DIRECTORIES
-explorationDir = os.getcwd() #current working directory
+currentDir = os.getcwd() #current working directory
+explorationDir = currentDir + "/" + name
 expressionLower = expression + "Lower"
 expressionCl = expression + "Cl"
 plotsDir = "plots"
@@ -165,26 +162,30 @@ def silent_mkdir(path):
 # SCRIPT FUNCTIONS #################################################
 def clean():
     printBlue("[INFO] Cleaning")
-    silentremove("exploration.log")
-    silentremove("generation.log")
-    shutil.rmtree(expression, ignore_errors=True)
-    shutil.rmtree(expressionLower, ignore_errors=True)
-    shutil.rmtree(expressionCl, ignore_errors=True)
-    shutil.rmtree(plotsDir, ignore_errors=True)
+    shutil.rmtree(explorationDir, ignore_errors=True)
+    #silentremove("exploration.log")
+    #silentremove("generation.log")
+    #shutil.rmtree(expression, ignore_errors=True)
+    #shutil.rmtree(expressionLower, ignore_errors=True)
+    #shutil.rmtree(expressionCl, ignore_errors=True)
+    #shutil.rmtree(plotsDir, ignore_errors=True)
+
+def callExplorationStage(rewrite, args):
+    printBlue("\n[INFO] Running " + rewrite)
+    printBlue("[INFO] args: " + args)
+    subprocess.call([scriptsDir + rewrite, args])
 
 def highLevelRewrite():
-    printBlue("[INFO] Running HighLevelRewrite")
-    subprocess.call([scriptsDir + "HighLevelRewrite", highLevelRewriteArgs + " " + lift + "highLevel/" + expression])
+    args = highLevelRewriteArgs + " " + lift + "highLevel/" + expression
+    callExplorationStage("HighLevelRewrite", args)
 
 def memoryMappingRewrite():
-    printBlue("\n[INFO] Running MemoryMappingRewrite")
-    # use relative path, does not work properly with absoulte path for some reason
-    subprocess.call([scriptsDir + "MemoryMappingRewrite", memoryMappingRewriteArgs + " " + expression])
+    args = memoryMappingRewriteArgs + " " + expression
+    callExplorationStage("MemoryMappingRewrite", args)
 
 def parameterRewrite():
-    printBlue("\n[INFO] Running ParameterRewrite")
-    # use relative path, does not work properly with absoulte path for some reason
-    subprocess.call([scriptsDir + "ParameterRewrite", parameterRewriteArgs + " " + expression])
+    args = parameterRewriteArgs + " " + expression
+    callExplorationStage("ParameterRewrite", args)
 
 def runHarness():
     printBlue("\n[INFO] Running Harness recursively")
@@ -283,20 +284,25 @@ def removeBlacklist():
     os.system(command)
     os.chdir(explorationDir)
 
+def setupExploration():
+    silent_mkdir(name)
+    shutil.copy2(args.config, name)
+    os.chdir(name)
 
 # START OF SCRIPT ##################################################
-os.chdir(explorationDir)
-
 if(args.clean): clean()
-if(args.highLevelRewrite): highLevelRewrite()
-if(args.memoryMappingRewrite): memoryMappingRewrite()
-if(args.parameterRewrite): parameterRewrite()
-if(args.runHarness): runHarness()
-if(args.gatherTimes): gatherTimes()
-if(args.plot): plot()
-if(args.rewrite): rewrite()
-if(args.execute): execute()
-if(args.removeBlacklist): removeBlacklist()
-if(args.rerun): rerun()
-if(args.full): explore()
+else:
+    setupExploration()
+    if(args.highLevelRewrite): highLevelRewrite()
+    if(args.memoryMappingRewrite): memoryMappingRewrite()
+    if(args.parameterRewrite): parameterRewrite()
+    if(args.runHarness): runHarness()
+    if(args.gatherTimes): gatherTimes()
+    if(args.plot): plot()
+    if(args.rewrite): rewrite()
+    if(args.execute): execute()
+    if(args.removeBlacklist): removeBlacklist()
+    if(args.rerun): rerun()
+    if(args.full): explore()
 
+os.chdir(currentDir)
