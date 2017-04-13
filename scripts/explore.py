@@ -75,6 +75,7 @@ highLevelRewriteArgs += " --collection " + collection
 if(onlyLower == "true"): highLevelRewriteArgs += " --onlyLower"
 
 ### MEMORY-MAPPING-REWRITE
+unrollReduce= configParser.get('MemoryMappingRewrite', 'UnrollReduce')
 global0 = configParser.get('MemoryMappingRewrite', 'Global0')
 global01 = configParser.get('MemoryMappingRewrite', 'Global01')
 global10 = configParser.get('MemoryMappingRewrite', 'Global10')
@@ -92,16 +93,17 @@ if(global210 == "true"): memoryMappingRewriteArgs += " --global210"
 if(group0 == "true"): memoryMappingRewriteArgs += " --group0"
 if(group01 == "true"): memoryMappingRewriteArgs += " --group01"
 if(group10 == "true"): memoryMappingRewriteArgs += " --group10"
+if(unrollReduce  == "true"): memoryMappingRewriteArgs += " --unroll-reduce"
 
 ### PARAMETER-REWRITE
 settings = configParser.get('ParameterRewrite', 'Settings')
 exploreNDRange = configParser.get('ParameterRewrite', 'ExploreNDRange')
 sampleNDRange = configParser.get('ParameterRewrite', 'SampleNDRange')
-injectNDRange = configParser.get('ParameterRewrite', 'injectNDRange')
+disableNDRangeInjection = configParser.get('ParameterRewrite', 'DisableNDRangeInjection')
 sequential = configParser.get('ParameterRewrite', 'Sequential')
 parameterRewriteArgs = " --file " + lift + "highLevel/" + settings 
 if(sequential == "true"): parameterRewriteArgs += " --sequential"
-if(injectNDRange == "true"): parameterRewriteArgs += " --injectNDRange"
+if(disableNDRangeInjection == "true"): parameterRewriteArgs += " --disableNDRangeInjection"
 if(exploreNDRange == "true"): parameterRewriteArgs += " --exploreNDRange"
 if (exploreNDRange == "true")and not (sampleNDRange == ""): parameterRewriteArgs += " --sampleNDRange " + sampleNDRange
 
