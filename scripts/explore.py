@@ -93,7 +93,7 @@ if(global210 == "true"): memoryMappingRewriteArgs += " --global210"
 if(group0 == "true"): memoryMappingRewriteArgs += " --group0"
 if(group01 == "true"): memoryMappingRewriteArgs += " --group01"
 if(group10 == "true"): memoryMappingRewriteArgs += " --group10"
-if(unrollReduce  == "true"): memoryMappingRewriteArgs += " --unroll-reduce"
+if(unrollReduce  == "true"): memoryMappingRewriteArgs += " --unrollReduce"
 
 ### PARAMETER-REWRITE
 settings = configParser.get('ParameterRewrite', 'Settings')
