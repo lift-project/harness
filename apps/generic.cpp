@@ -9,7 +9,8 @@
 #include <boost/property_tree/json_parser.hpp>
 
 #include <boost/program_options.hpp>
-#include <opencl_utils.h>
+#include "opencl_utils.h"
+#include "file_utils.h"
 
 namespace po = boost::program_options;
 namespace pt = boost::property_tree;
@@ -90,9 +91,6 @@ void execute(function<bool(const vector<float>&)> validate,
  */
 void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
     const bool threaded, const bool binary) {
-
-  if (all_run.size() <= 0)
-    return;
 
   if (binary) cout << "Using precompiled binaries" << endl;
 
@@ -302,7 +300,6 @@ int main(int argc, const char *const *argv) {
 
   File::set_size(size_string);
 
-
   // === Loading CSV file ===
   auto all_run = Csv::init(
       [&](const std::vector<std::string>& values) {
@@ -310,6 +307,10 @@ int main(int argc, const char *const *argv) {
                    inputs.size(), local_0, local_1, local_2));
       });
 
+  if (all_run.empty()) {
+    File::create_done_marker(size_string);
+    exit(0);
+  }
 
   OpenCL::init(platform, device);
 
