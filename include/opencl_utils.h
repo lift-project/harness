@@ -117,7 +117,7 @@ class OpenCL {
 				// Save result to file
 				File::add_time(run.hash, median, local_size);
 				best_time = min(best_time, median);
-				std::cout << "[" << counter << "] best time: " << median;
+				std::cout << "[" << counter << "] best time: " << best_time << ", current: " << median;
 				if (median > timeout) std::cout << " (timeout: " << timeout << ")";
 				std::cout << std::endl;
 			}
