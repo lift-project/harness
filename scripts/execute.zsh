@@ -65,6 +65,9 @@ fi
 # Try to execute
 for i in $(seq 1 $ITERATIONS)
 do
+
+  NUM_EXEC=0
+
   for LOW_LEVEL in $(find $PROGRAM -mindepth 1 -type d)
   do
 
@@ -73,10 +76,18 @@ do
     # If done marker is set, ignore
     if [[ ! -a $DONE_FILE ]]
     then
+      
+      NUM_EXEC=$(($NUM_EXEC + 1))
+
       cd $LOW_LEVEL
 
       timeout 3m harness_generic --folder $INPUTS --file $CONFIG -p $PLATFORM -d $DEVICE
     fi
   done
+
+  if [[ $NUM_EXEC = 0 ]]
+  then
+    exit
+  fi
 
 done
