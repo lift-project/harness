@@ -54,6 +54,11 @@ class File {
 		outfile << content << std::endl;
 	}
 
+  static void create_done_marker(const std::string& size_string) {
+    std::ofstream outfile;
+    outfile.open("done_" + size_string);
+  }
+
 	static void add_blacklist(const std::string &hash) {
 		file_append(blacklist_filename, hash);
 	}
@@ -112,7 +117,7 @@ class File {
 		out.write((char *)data.data(), sizeof(T) * data.size());
 	}
 
-	// save file to human readible format
+	// Save file to human readable format
 	template <typename T>
 	static void save_input_debug(const std::vector<T> &data, const std::string &filename) {
 		using namespace std;

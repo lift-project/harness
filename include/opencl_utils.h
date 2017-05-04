@@ -84,7 +84,7 @@ class OpenCL {
 		try {
 			// prepare the kernel for execution
 			run.setup(context);
-
+			auto current_timeout = 5 * best_time;
 			// executing
 			cl::Event evt;
 			for (int i = 0; i < iterations; ++i) {
@@ -97,7 +97,7 @@ class OpenCL {
 				times.push_back(((double)time) / 1000.0 / 1000.0);
 				if (times.back() > timeout)
 					break;
-				else if (times.back() > 5 * best_time)
+				else if (times.back() > current_timeout)
 					break;
 			}
 			// read back the result
@@ -108,8 +108,8 @@ class OpenCL {
 			if (!validation(result)) {
 				// Save result to file
 				File::add_invalid(run.hash);
-				std::cerr << "[INVALID] [" << counter
-					  << "] Cross validation failed for " << run.hash << endl;
+				std::cerr << "[" << counter
+					  << "] [INVALID] Cross validation failed for " << run.hash << endl;
 			} else {
 				// take median
 				sort(times.begin(), times.end());
@@ -117,14 +117,15 @@ class OpenCL {
 				// Save result to file
 				File::add_time(run.hash, median, local_size);
 				best_time = min(best_time, median);
-				std::cout << "[" << counter << "] best time: " << median;
-				if (median > timeout) std::cout << " (timeout: " << timeout << ")";
+				std::cout << "[" << counter << "] best time: " << best_time;
+				std::cout << ", current time: " << median;
+				if (median > timeout) std::cout << " (timeout: " << current_timeout << ")";
 				std::cout << std::endl;
 			}
 		} catch (const cl::Error &err) {
 			if (err.err() != CL_INVALID_WORK_GROUP_SIZE) {
-				std::cerr << "[BLACKLIST] [" << counter
-					  << "] execution failed:  " << run.hash << endl;
+				std::cerr << "[" << counter
+					  << "] [BLACKLIST] execution failed:  " << run.hash << endl;
 				File::add_blacklist(run.hash);
 				// cerr << "execution failed: " << run.hash << endl;
 				cerr << err.what() << " (" << err.err() << ")" << std::endl;
