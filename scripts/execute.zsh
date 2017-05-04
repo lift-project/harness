@@ -1,12 +1,21 @@
-#!/usr/bin/zsh
+#!/usr/bin/env zsh
 
-PROGRAM=dummy
-PLATFORM=0
-DEVICE=0
-SIZE_STRING="1024"
 ORIG_DIR=$PWD
-INPUTS=/home/s1042579/generated_programs/inputs
-CONFIG=/home/s1042579/harness/bla_interface.json
+
+# Set default options
+typeset -A opts
+opts[-p]=0
+opts[-d]=0
+opts[--inputs]=$ORIG_DIR/inputs
+
+zparseopts -K -A opts p: d: -inputs: -program: -config:
+
+PROGRAM=$PROGRAM
+PLATFORM=$opts[-p]
+DEVICE=$opts[-d]
+SIZE_STRING="1024"
+INPUTS=$opts[--inputs]
+CONFIG=$opts[--config]
 
 for i in $(seq 1 250)
 do
