@@ -84,7 +84,7 @@ class OpenCL {
 		try {
 			// prepare the kernel for execution
 			run.setup(context);
-
+			auto current_timeout = 5 * best_time;
 			// executing
 			cl::Event evt;
 			for (int i = 0; i < iterations; ++i) {
@@ -97,7 +97,7 @@ class OpenCL {
 				times.push_back(((double)time) / 1000.0 / 1000.0);
 				if (times.back() > timeout)
 					break;
-				else if (times.back() > 5 * best_time)
+				else if (times.back() > current_timeout)
 					break;
 			}
 			// read back the result
@@ -119,7 +119,7 @@ class OpenCL {
 				best_time = min(best_time, median);
 				std::cout << "[" << counter << "] best time: " << best_time;
 				std::cout << ", current time: " << median;
-				if (median > timeout) std::cout << " (timeout: " << timeout << ")";
+				if (median > timeout) std::cout << " (timeout: " << current_timeout << ")";
 				std::cout << std::endl;
 			}
 		} catch (const cl::Error &err) {
