@@ -108,8 +108,8 @@ class OpenCL {
 			if (!validation(result)) {
 				// Save result to file
 				File::add_invalid(run.hash);
-				std::cerr << "[INVALID] [" << counter
-					  << "] Cross validation failed for " << run.hash << endl;
+				std::cerr << "[" << counter
+					  << "] [INVALID] Cross validation failed for " << run.hash << endl;
 			} else {
 				// take median
 				sort(times.begin(), times.end());
@@ -124,8 +124,8 @@ class OpenCL {
 			}
 		} catch (const cl::Error &err) {
 			if (err.err() != CL_INVALID_WORK_GROUP_SIZE) {
-				std::cerr << "[BLACKLIST] [" << counter
-					  << "] execution failed:  " << run.hash << endl;
+				std::cerr << "[" << counter
+					  << "] [BLACKLIST] execution failed:  " << run.hash << endl;
 				File::add_blacklist(run.hash);
 				// cerr << "execution failed: " << run.hash << endl;
 				cerr << err.what() << " (" << err.err() << ")" << std::endl;
