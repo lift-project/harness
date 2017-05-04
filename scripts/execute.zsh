@@ -50,7 +50,7 @@ check_command jq
 
 check_file $PROGRAM \'--program\'
 check_file $INPUTS \'--inputs\'
-check_file $CONFIG \'--inputs\'
+check_file $CONFIG \'--config\'
 
 # Get the size string used for the done file
 NUM_DIFF_SIZES=$(jq '.sizes' $CONFIG | sed -e '/\[/d' -e ' /\]/d' -e 's/,//g' -e 's/ //g' | uniq | wc -l)
