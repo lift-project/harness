@@ -96,9 +96,42 @@ void load_configuration(const string& filename) {
 
 }
 
-void execute(function<bool(const vector<float>&)> validate,
+bool validate(const std::vector<float>& kernel_output) {
+  // Reference output not provided, ignore validation
+  if (!output_file) return true;
+
+  if (gold_output.size() != kernel_output.size()) return false;
+
+  for (auto i = 0u; i < gold_output.size(); i++) {
+    auto x = gold_output[i];
+    auto y = kernel_output[i];
+
+    if (abs(x - y) > 0.0001f * max(abs(x), abs(y))) return false;
+  }
+
+  return true;
+}
+
+template <typename T>
+void execute(boost::optional<function<bool(const std::vector<T>&)>> validate,
     const vector<cl::Buffer> &input_buffers, const cl::Buffer &output_dev,
-    shared_ptr<Run> &r);
+    shared_ptr<Run> &r) {
+  cl_uint i;
+
+  for (i = 0; i < inputs.size(); i++) {
+
+    auto type = inputs[i].first;
+
+    if (type.find("_") == string::npos)
+      r->getKernel().setArg(i, read_inputs[i].front());
+    else
+      r->getKernel().setArg(i, input_buffers[i]);
+  }
+
+  r->getKernel().setArg(i, output_dev);
+
+  OpenCL::executeRun<T>(*r, output_dev, output_size / sizeof(T), validate);
+};
 
 /**
  * FIXME: This is a lazy copy paste of the old main with a template switch for single and double
@@ -111,36 +144,24 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
 
   load_inputs_and_outputs();
 
-  // validation function
-  auto validate = [&](const std::vector<float> &kernel_output)->bool {
-    // Reference output not provided, ignore validation
-    if (!output_file) return true;
-
-    if (gold_output.size() != kernel_output.size()) return false;
-
-    for (auto i = 0u; i < gold_output.size(); i++) {
-      auto x = gold_output[i];
-			auto y = kernel_output[i];
-
-			if (abs(x - y) > 0.0001f * max(abs(x), abs(y))) return false;
-    }
-
-    return true;
-  };
-
   // TODO: inputs?? mix of buffers and the rest
   // TODO: Other data types
   vector<cl::Buffer> input_buffers;
 
+  // Allocate input buffers
   for (auto& input : read_inputs) {
     input_buffers.push_back(
         OpenCL::alloc(CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
             input.size() * sizeof(float), static_cast<void*>(input.data()))
     );
-
   }
 
-  // Allocating buffers
+  boost::optional<function<bool(const vector<float> &)>> optional_validation;
+
+  if (output_file)
+    optional_validation = boost::optional<function<bool(const vector<float> &)>>(validate);
+
+  // Allocating the output buffer
   cl::Buffer output_dev = OpenCL::alloc(CL_MEM_READ_WRITE, output_size);
 
   // multi-threaded exec
@@ -180,7 +201,7 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
             ready_queue.pop();
           }
 
-          execute(validate, input_buffers, output_dev, r);
+          execute(optional_validation, input_buffers, output_dev, r);
         }
       }
     });
@@ -195,31 +216,12 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
     for (auto &r : all_run) {
 
       if (r->compile(binary))
-        execute(validate, input_buffers, output_dev, r);
+        execute(optional_validation, input_buffers, output_dev, r);
 
     }
   }
 }
 
-void execute(function<bool(const std::vector<float>&)> validate,
-    const vector<cl::Buffer> &input_buffers, const cl::Buffer &output_dev,
-    shared_ptr<Run> &r) {
-  cl_uint i;
-
-  for (i = 0; i < inputs.size(); i++) {
-
-    auto type = inputs[i].first;
-
-    if (type.find("_") == string::npos)
-      r->getKernel().setArg(i, read_inputs[i].front());
-    else
-      r->getKernel().setArg(i, input_buffers[i]);
-  }
-
-  r->getKernel().setArg(i, output_dev);
-
-  OpenCL::executeRun<float>(*r, output_dev, output_size / sizeof(float), validate);
-};
 
 template<typename T>
 struct GenericRun : public Run {
