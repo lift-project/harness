@@ -11,7 +11,8 @@ class Run;
 namespace Csv {
 
 // split CSV values in array of strings
-inline std::vector<std::string> getNextLineAndSplitIntoTokens(std::istream &str) {
+inline std::vector<std::string>
+getNextLineAndSplitIntoTokens(std::istream &str) {
   std::vector<std::string> result;
   std::string line;
   std::getline(str, line);
@@ -33,7 +34,8 @@ inline std::size_t readInt(const std::string &str) {
 }
 
 // Load a csv and return a list of values for each line
-inline std::vector<std::vector<std::string>> loadCsv(const std::string &filename) {
+inline std::vector<std::vector<std::string>>
+loadCsv(const std::string &filename) {
   std::vector<std::string> line;
   std::vector<std::vector<std::string>> all_values;
 
@@ -41,12 +43,14 @@ inline std::vector<std::vector<std::string>> loadCsv(const std::string &filename
 
   do {
     line = getNextLineAndSplitIntoTokens(t);
-    if (line.size() > 0) all_values.push_back(line);
+    if (line.size() > 0)
+      all_values.push_back(line);
   } while (line.size() != 0);
 
   return all_values;
 }
 
-std::vector<std::shared_ptr<Run>> init(std::function<std::shared_ptr<Run>(const std::vector<std::string> &)> factory);
-
+std::vector<std::shared_ptr<Run>>
+init(std::function<std::shared_ptr<Run>(const std::vector<std::string> &)>
+         factory);
 }

@@ -15,108 +15,114 @@
 #include "run.h"
 
 class OpenCL {
-	static cl::Context context;
-	static cl::CommandQueue queue;
-	static std::vector<cl::Device> devices;
+  static cl::Context context;
+  static cl::CommandQueue queue;
+  static std::vector<cl::Device> devices;
 
-	static std::size_t device_max_work_group_size;
-	static std::vector<size_t> device_max_work_item_sizes;
+  static std::size_t device_max_work_group_size;
+  static std::vector<size_t> device_max_work_item_sizes;
 
-      public:
-	static cl_ulong device_local_mem_size;
-	static float timeout;
-	static bool local_combinations;
-	static size_t min_local_size;
-	static int iterations;
+public:
+  static cl_ulong device_local_mem_size;
+  static float timeout;
+  static bool local_combinations;
+  static size_t min_local_size;
+  static int iterations;
 
-	static void init(const unsigned platform_idx, const unsigned device_idx,
-			 const unsigned iters = 10) {
-		iterations = iters;
-		std::vector<cl::Platform> platform;
-		cl::Platform::get(&platform);
+  static void init(const unsigned platform_idx, const unsigned device_idx,
+                   const unsigned iters = 10) {
+    iterations = iters;
+    std::vector<cl::Platform> platform;
+    cl::Platform::get(&platform);
 
-		assert(platform.size() >= platform_idx + 1 && "platform not found");
+    assert(platform.size() >= platform_idx + 1 && "platform not found");
 
-		platform[platform_idx].getDevices(CL_DEVICE_TYPE_ALL, &devices);
-		assert(devices.size() >= device_idx + 1 && "Device not found");
+    platform[platform_idx].getDevices(CL_DEVICE_TYPE_ALL, &devices);
+    assert(devices.size() >= device_idx + 1 && "Device not found");
 
-		devices = {devices[device_idx]};
-		context = cl::Context(devices);
-		auto &device = devices.front();
-		queue = cl::CommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE);
+    devices = {devices[device_idx]};
+    context = cl::Context(devices);
+    auto &device = devices.front();
+    queue = cl::CommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE);
 
-		device_local_mem_size = device.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>();
-		device_max_work_group_size = device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>();
-		device_max_work_item_sizes = device.getInfo<CL_DEVICE_MAX_WORK_ITEM_SIZES>();
+    device_local_mem_size = device.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>();
+    device_max_work_group_size =
+        device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>();
+    device_max_work_item_sizes =
+        device.getInfo<CL_DEVICE_MAX_WORK_ITEM_SIZES>();
 
-		std::cout << "Executing on " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
-	}
+    std::cout << "Executing on " << device.getInfo<CL_DEVICE_NAME>()
+              << std::endl;
+  }
 
-	static cl::Buffer alloc(cl_mem_flags flags, std::size_t size, void *data = nullptr) {
-		return cl::Buffer(context, flags, size, data);
-	}
+  static cl::Buffer alloc(cl_mem_flags flags, std::size_t size,
+                          void *data = nullptr) {
+    return cl::Buffer(context, flags, size, data);
+  }
 
-	template <typename T>
-	static void executeRun(Run &run, cl::NDRange local_size, cl::Buffer output,
-			       std::size_t output_size,
-			       boost::optional<std::function<bool(const std::vector<T> &)>> validation) {
-		using namespace std;
+  template <typename T>
+  static void executeRun(
+      Run &run, cl::NDRange local_size, cl::Buffer output,
+      std::size_t output_size,
+      boost::optional<std::function<bool(const std::vector<T> &)>> validation) {
+    using namespace std;
 
-		// check (again) for compatibility
-		auto numWorkItems = run.loc1 * run.loc2 * run.loc3;
-		bool compatible =
-		    OpenCL::compatibility_checks(run.getKernel(), numWorkItems, run.sum_local);
-		if (!compatible) {
-			std::cerr << "[INCOMPATIBLE] Compatibility check failed\n";
-			File::add_incompatible(run.hash);
-			return;
-		}
+    // check (again) for compatibility
+    auto numWorkItems = run.loc1 * run.loc2 * run.loc3;
+    bool compatible = OpenCL::compatibility_checks(run.getKernel(),
+                                                   numWorkItems, run.sum_local);
+    if (!compatible) {
+      std::cerr << "[INCOMPATIBLE] Compatibility check failed\n";
+      File::add_incompatible(run.hash);
+      return;
+    }
 
-		static int counter = 0;
-		counter++;
-		static double best_time = timeout;
+    static int counter = 0;
+    counter++;
+    static double best_time = timeout;
 
-		auto locals = (const ::size_t *)local_size;
-		auto total_local_size = locals[0] * locals[1] * locals[2];
+    auto locals = (const ::size_t *)local_size;
+    auto total_local_size = locals[0] * locals[1] * locals[2];
 
-		if (total_local_size != 0 && total_local_size < min_local_size) return;
+    if (total_local_size != 0 && total_local_size < min_local_size)
+      return;
 
-		std::vector<double> times;
-		times.reserve(iterations);
-		try {
-			// prepare the kernel for execution
-			run.setup(context);
-			auto current_timeout = 5 * best_time;
-			// executing
-			cl::Event evt;
-			for (int i = 0; i < iterations; ++i) {
-				queue.enqueueNDRangeKernel(run.kernel, cl::NullRange,
-							   {run.glob1, run.glob2, run.glob3},
-							   local_size, nullptr, &evt);
-				evt.wait();
-				auto time = evt.getProfilingInfo<CL_PROFILING_COMMAND_END>() -
-					    evt.getProfilingInfo<CL_PROFILING_COMMAND_START>();
-				times.push_back(((double)time) / 1000.0 / 1000.0);
-				if (times.back() > timeout)
-					break;
-				else if (times.back() > current_timeout)
-					break;
-			}
+    std::vector<double> times;
+    times.reserve(iterations);
+    try {
+      // prepare the kernel for execution
+      run.setup(context);
+      auto current_timeout = 5 * best_time;
+      // executing
+      cl::Event evt;
+      for (int i = 0; i < iterations; ++i) {
+        queue.enqueueNDRangeKernel(run.kernel, cl::NullRange,
+                                   {run.glob1, run.glob2, run.glob3},
+                                   local_size, nullptr, &evt);
+        evt.wait();
+        auto time = evt.getProfilingInfo<CL_PROFILING_COMMAND_END>() -
+                    evt.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+        times.push_back(((double)time) / 1000.0 / 1000.0);
+        if (times.back() > timeout)
+          break;
+        else if (times.back() > current_timeout)
+          break;
+      }
 
       if (validation) {
         // read back the result
         std::vector<T> result(output_size);
         queue.enqueueReadBuffer(output, CL_TRUE, 0, result.size() * sizeof(T),
-            result.data());
+                                result.data());
 
         if (!validation.get()(result)) {
           // Save result to file
           File::add_invalid(run.hash);
           std::cerr << "[" << counter
-                    << "] [INVALID] Cross validation failed for " << run.hash << endl;
+                    << "] [INVALID] Cross validation failed for " << run.hash
+                    << endl;
           return;
         }
-
       }
 
       // take median
@@ -127,154 +133,160 @@ class OpenCL {
       best_time = min(best_time, median);
       std::cout << "[" << counter << "] best time: " << best_time;
       std::cout << ", current time: " << median;
-      if (median > timeout) std::cout << " (timeout: " << current_timeout << ")";
+      if (median > timeout)
+        std::cout << " (timeout: " << current_timeout << ")";
       std::cout << std::endl;
 
     } catch (const cl::Error &err) {
-			if (err.err() != CL_INVALID_WORK_GROUP_SIZE) {
-				std::cerr << "[" << counter
-					  << "] [BLACKLIST] execution failed:  " << run.hash << endl;
-				File::add_blacklist(run.hash);
-				// cerr << "execution failed: " << run.hash << endl;
-				cerr << err.what() << " (" << err.err() << ")" << std::endl;
-				exit(err.err());
-			}
-		}
-	}
+      if (err.err() != CL_INVALID_WORK_GROUP_SIZE) {
+        std::cerr << "[" << counter
+                  << "] [BLACKLIST] execution failed:  " << run.hash << endl;
+        File::add_blacklist(run.hash);
+        // cerr << "execution failed: " << run.hash << endl;
+        cerr << err.what() << " (" << err.err() << ")" << std::endl;
+        exit(err.err());
+      }
+    }
+  }
 
   template <typename T>
-  static void executeRun(Run &run, cl::Buffer output, std::size_t output_size,
-      std::function<bool(const std::vector<T> &)> validation) {
+  static void
+  executeRun(Run &run, cl::Buffer output, std::size_t output_size,
+             std::function<bool(const std::vector<T> &)> validation) {
     auto wrapped_validate =
-        boost::optional<std::function<bool(const std::vector<T> &)>>(validation);
+        boost::optional<std::function<bool(const std::vector<T> &)>>(
+            validation);
     executeRun(run, output, output_size, wrapped_validate);
   }
 
-	template <typename T>
-	static void executeRun(Run &run, cl::Buffer output, std::size_t output_size,
-			       boost::optional<std::function<bool(const std::vector<T> &)>> validation) {
-		// if local size is set in the run use this
-		if (run.loc1 != 0 && run.loc2 != 0 && run.loc3 != 0) {
-			executeRun(run, {run.loc1, run.loc2, run.loc3}, output, output_size,
-				   validation);
-		} else {
+  template <typename T>
+  static void executeRun(
+      Run &run, cl::Buffer output, std::size_t output_size,
+      boost::optional<std::function<bool(const std::vector<T> &)>> validation) {
+    // if local size is set in the run use this
+    if (run.loc1 != 0 && run.loc2 != 0 && run.loc3 != 0) {
+      executeRun(run, {run.loc1, run.loc2, run.loc3}, output, output_size,
+                 validation);
+    } else {
 
-			if (!local_combinations) {
-				// let the OpenCL runtime choose an appropriate local size
-				executeRun(run, cl::NDRange(), output, output_size, validation);
-			} else {
+      if (!local_combinations) {
+        // let the OpenCL runtime choose an appropriate local size
+        executeRun(run, cl::NDRange(), output, output_size, validation);
+      } else {
 
-				// loop over valid combinations, while ignoring tiny work-groups
-				// and small numbers of work-groups
-				size_t min_workgroup_size = 4;
+        // loop over valid combinations, while ignoring tiny work-groups
+        // and small numbers of work-groups
+        size_t min_workgroup_size = 4;
 
-				size_t loc1_max =
-				    run.loc1 == 0 ? device_max_work_item_sizes[0] : run.loc1;
-				size_t loc2_max =
-				    run.loc2 == 0 ? device_max_work_item_sizes[1] : run.loc2;
-				size_t loc3_max =
-				    run.loc3 == 0 ? device_max_work_item_sizes[2] : run.loc3;
+        size_t loc1_max =
+            run.loc1 == 0 ? device_max_work_item_sizes[0] : run.loc1;
+        size_t loc2_max =
+            run.loc2 == 0 ? device_max_work_item_sizes[1] : run.loc2;
+        size_t loc3_max =
+            run.loc3 == 0 ? device_max_work_item_sizes[2] : run.loc3;
 
-				for (size_t loc1 = 1; loc1 <= loc1_max; loc1 *= 2) {
-					for (size_t loc2 = 1; loc2 <= loc2_max; loc2 *= 2) {
-						for (size_t loc3 = 1; loc3 <= loc3_max; loc3 *= 2) {
-							auto total_size = loc1 * loc2 * loc3;
-							if (total_size >= min_workgroup_size &&
-							    total_size <=
-								device_max_work_group_size &&
-							    loc1 <= run.glob1 &&
-							    loc2 <= run.glob2 && loc3 <= run.glob3)
-								executeRun(run, {loc1, loc2, loc3},
-									   output, output_size,
-									   validation);
-						}
-					}
-				}
-			}
-		}
-	}
+        for (size_t loc1 = 1; loc1 <= loc1_max; loc1 *= 2) {
+          for (size_t loc2 = 1; loc2 <= loc2_max; loc2 *= 2) {
+            for (size_t loc3 = 1; loc3 <= loc3_max; loc3 *= 2) {
+              auto total_size = loc1 * loc2 * loc3;
+              if (total_size >= min_workgroup_size &&
+                  total_size <= device_max_work_group_size &&
+                  loc1 <= run.glob1 && loc2 <= run.glob2 && loc3 <= run.glob3)
+                executeRun(run, {loc1, loc2, loc3}, output, output_size,
+                           validation);
+            }
+          }
+        }
+      }
+    }
+  }
 
-	static bool compatibility_checks(cl::Kernel &kernel, size_t num_work_items,
-					 size_t sum_local_mem_kernel_args = 0) {
-		size_t wg_size = 0;
-		cl_ulong local_size = 0;
+  static bool compatibility_checks(cl::Kernel &kernel, size_t num_work_items,
+                                   size_t sum_local_mem_kernel_args = 0) {
+    size_t wg_size = 0;
+    cl_ulong local_size = 0;
 
-		kernel.getWorkGroupInfo(devices.front(), CL_KERNEL_WORK_GROUP_SIZE, &wg_size);
-		kernel.getWorkGroupInfo(devices.front(), CL_KERNEL_LOCAL_MEM_SIZE, &local_size);
+    kernel.getWorkGroupInfo(devices.front(), CL_KERNEL_WORK_GROUP_SIZE,
+                            &wg_size);
+    kernel.getWorkGroupInfo(devices.front(), CL_KERNEL_LOCAL_MEM_SIZE,
+                            &local_size);
 
-		if (wg_size == 0 || num_work_items > device_max_work_group_size) return false;
-		if (local_size > device_local_mem_size) return false;
+    if (wg_size == 0 || num_work_items > device_max_work_group_size)
+      return false;
+    if (local_size > device_local_mem_size)
+      return false;
 
-		// OpenCL API does not seem to return the correct size for local memory specified
-		// as kernel args. Manually implement check here:
-		if (sum_local_mem_kernel_args > device_local_mem_size) return false;
+    // OpenCL API does not seem to return the correct size for local memory
+    // specified
+    // as kernel args. Manually implement check here:
+    if (sum_local_mem_kernel_args > device_local_mem_size)
+      return false;
 
-		return true;
-	};
+    return true;
+  };
 
-	static bool compile(const std::string &hash, cl::Kernel &kernel,
-			    const size_t num_work_items, const bool binary_mode) {
-		auto code = loadCode(hash, binary_mode);
-		if (code.size() == 0) {
-			std::cerr << "[BLACKLIST] code.size == 0: " << hash << std::endl;
-			File::add_blacklist(hash);
-			return false;
-		}
-		cl::Program program;
+  static bool compile(const std::string &hash, cl::Kernel &kernel,
+                      const size_t num_work_items, const bool binary_mode) {
+    auto code = loadCode(hash, binary_mode);
+    if (code.size() == 0) {
+      std::cerr << "[BLACKLIST] code.size == 0: " << hash << std::endl;
+      File::add_blacklist(hash);
+      return false;
+    }
+    cl::Program program;
 
-		try {
-			if (binary_mode)
-				program =
-				    cl::Program(context, devices,
-						cl::Program::Binaries(
-						    1, std::make_pair(code.data(), code.size())));
-			else
-				program = cl::Program(
-				    context, cl::Program::Sources(
-						 1, std::make_pair(code.data(), code.size())));
-			program.build(devices);
-			kernel = cl::Kernel(program, "KERNEL");
-			if (!compatibility_checks(kernel, num_work_items)) {
-				kernel = cl::Kernel();
-				std::cout << "[INCOMPATIBLE] Compatibility check failed\n";
-				File::add_incompatible(hash);
-				return false;
-			}
-		} catch (const cl::Error &err) {
-			try {
-				const std::string what =
-				    program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices.front());
-				// Nvidia doesn't compile the code if it uses too much memory (ptxas
-				// error)
-				if (what.find("uses too much shared data") != std::string::npos) {
-					std::cerr << "[INCOMPATIBLE] Compatibility check failed\n";
-					File::add_incompatible(hash);
-				} else {
-					std::cerr << "[COMPILE-ERROR] Compilation failed : " << hash
-						  << "\n";
-					File::add_compileerror(hash);
-				}
-			}
-			// the getBuildInfo might also fail
-			catch (const cl::Error &err) {
-				std::cerr << "[COMPILE-ERROR] getBuildInfo failed\n";
-				File::add_compileerror(hash);
-			}
-			return false;
-		}
-		return true;
-	}
+    try {
+      if (binary_mode)
+        program = cl::Program(
+            context, devices,
+            cl::Program::Binaries(1, std::make_pair(code.data(), code.size())));
+      else
+        program = cl::Program(
+            context,
+            cl::Program::Sources(1, std::make_pair(code.data(), code.size())));
+      program.build(devices);
+      kernel = cl::Kernel(program, "KERNEL");
+      if (!compatibility_checks(kernel, num_work_items)) {
+        kernel = cl::Kernel();
+        std::cout << "[INCOMPATIBLE] Compatibility check failed\n";
+        File::add_incompatible(hash);
+        return false;
+      }
+    } catch (const cl::Error &err) {
+      try {
+        const std::string what =
+            program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices.front());
+        // Nvidia doesn't compile the code if it uses too much memory (ptxas
+        // error)
+        if (what.find("uses too much shared data") != std::string::npos) {
+          std::cerr << "[INCOMPATIBLE] Compatibility check failed\n";
+          File::add_incompatible(hash);
+        } else {
+          std::cerr << "[COMPILE-ERROR] Compilation failed : " << hash << "\n";
+          File::add_compileerror(hash);
+        }
+      }
+      // the getBuildInfo might also fail
+      catch (const cl::Error &err) {
+        std::cerr << "[COMPILE-ERROR] getBuildInfo failed\n";
+        File::add_compileerror(hash);
+      }
+      return false;
+    }
+    return true;
+  }
 
-      protected:
-	static std::string loadCode(const std::string &hash, bool binary) {
-		std::ifstream t(hash + (binary ? ".bin" : ".cl"));
-		std::string cl_code = std::string((std::istreambuf_iterator<char>(t)),
-						  std::istreambuf_iterator<char>());
-		if (cl_code.size() == 0) {
-			std::cerr << "\n[BLACKLIST] No source for " << hash << ".cl\n" << std::endl;
-			File::add_blacklist(hash);
-		}
+protected:
+  static std::string loadCode(const std::string &hash, bool binary) {
+    std::ifstream t(hash + (binary ? ".bin" : ".cl"));
+    std::string cl_code = std::string((std::istreambuf_iterator<char>(t)),
+                                      std::istreambuf_iterator<char>());
+    if (cl_code.size() == 0) {
+      std::cerr << "\n[BLACKLIST] No source for " << hash << ".cl\n"
+                << std::endl;
+      File::add_blacklist(hash);
+    }
 
-		return cl_code;
-	}
+    return cl_code;
+  }
 };
