@@ -65,7 +65,7 @@ void load_inputs_and_outputs() {
   }
 
   if (output_file) {
-    auto& filename = output_file.get();
+    auto filename = input_file_folder + "/" + output_file.get();
     read_file_with_size(gold_output, filename, output_size);
   }
 
@@ -114,11 +114,11 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
   // validation function
   auto validate = [&](const std::vector<float> &kernel_output)->bool {
     // Reference output not provided, ignore validation
-    if (output_file) return true;
+    if (!output_file) return true;
 
     if (gold_output.size() != kernel_output.size()) return false;
 
-    for (auto i = 0; gold_output.size(); i++) {
+    for (auto i = 0u; i < gold_output.size(); i++) {
       auto x = gold_output[i];
 			auto y = kernel_output[i];
 
