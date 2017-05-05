@@ -6,6 +6,8 @@
 #include <iostream>
 #include <vector>
 
+#include <boost/optional.hpp>
+
 #define __CL_ENABLE_EXCEPTIONS
 #include <CL/cl.hpp>
 
@@ -57,7 +59,7 @@ class OpenCL {
 	template <typename T>
 	static void executeRun(Run &run, cl::NDRange local_size, cl::Buffer output,
 			       std::size_t output_size,
-			       std::function<bool(const std::vector<T> &)> validation) {
+			       boost::optional<std::function<bool(const std::vector<T> &)>> validation) {
 		using namespace std;
 
 		// check (again) for compatibility
@@ -100,29 +102,35 @@ class OpenCL {
 				else if (times.back() > current_timeout)
 					break;
 			}
-			// read back the result
-			std::vector<T> result(output_size);
-			queue.enqueueReadBuffer(output, CL_TRUE, 0, result.size() * sizeof(T),
-						result.data());
 
-			if (!validation(result)) {
-				// Save result to file
-				File::add_invalid(run.hash);
-				std::cerr << "[" << counter
-					  << "] [INVALID] Cross validation failed for " << run.hash << endl;
-			} else {
-				// take median
-				sort(times.begin(), times.end());
-				auto median = times[times.size() / 2];
-				// Save result to file
-				File::add_time(run.hash, median, local_size);
-				best_time = min(best_time, median);
-				std::cout << "[" << counter << "] best time: " << best_time;
-				std::cout << ", current time: " << median;
-				if (median > timeout) std::cout << " (timeout: " << current_timeout << ")";
-				std::cout << std::endl;
-			}
-		} catch (const cl::Error &err) {
+      if (validation) {
+        // read back the result
+        std::vector<T> result(output_size);
+        queue.enqueueReadBuffer(output, CL_TRUE, 0, result.size() * sizeof(T),
+            result.data());
+
+        if (!validation.get()(result)) {
+          // Save result to file
+          File::add_invalid(run.hash);
+          std::cerr << "[" << counter
+                    << "] [INVALID] Cross validation failed for " << run.hash << endl;
+          return;
+        }
+
+      }
+
+      // take median
+      sort(times.begin(), times.end());
+      auto median = times[times.size() / 2];
+      // Save result to file
+      File::add_time(run.hash, median, local_size);
+      best_time = min(best_time, median);
+      std::cout << "[" << counter << "] best time: " << best_time;
+      std::cout << ", current time: " << median;
+      if (median > timeout) std::cout << " (timeout: " << current_timeout << ")";
+      std::cout << std::endl;
+
+    } catch (const cl::Error &err) {
 			if (err.err() != CL_INVALID_WORK_GROUP_SIZE) {
 				std::cerr << "[" << counter
 					  << "] [BLACKLIST] execution failed:  " << run.hash << endl;
@@ -134,9 +142,17 @@ class OpenCL {
 		}
 	}
 
+  template <typename T>
+  static void executeRun(Run &run, cl::Buffer output, std::size_t output_size,
+      std::function<bool(const std::vector<T> &)> validation) {
+    auto wrapped_validate =
+        boost::optional<std::function<bool(const std::vector<T> &)>>(validation);
+    executeRun(run, output, output_size, wrapped_validate);
+  }
+
 	template <typename T>
 	static void executeRun(Run &run, cl::Buffer output, std::size_t output_size,
-			       std::function<bool(const std::vector<T> &)> validation) {
+			       boost::optional<std::function<bool(const std::vector<T> &)>> validation) {
 		// if local size is set in the run use this
 		if (run.loc1 != 0 && run.loc2 != 0 && run.loc3 != 0) {
 			executeRun(run, {run.loc1, run.loc2, run.loc3}, output, output_size,
