@@ -11,7 +11,7 @@
 #include "kmeansrun.h"
 #include "kmeans_harness.h"
 
-struct KMeansTest: public ::testing::Test {
+struct KMeansTest : public ::testing::Test {
 
   std::string timing_filename;
 
@@ -30,25 +30,14 @@ struct KMeansTest: public ::testing::Test {
     if (File::is_file_exist(timing_filename))
       std::remove(timing_filename.c_str());
   }
-
 };
 
 TEST_F(KMeansTest, CanCreate) {
 
-  auto settings = std::vector<std::string>({
-      "",
-      "1024",
-      "",
-      "1",
-      "16",
-      "",
-      "1",
-      "bla",
-      "0",
-      "0"
-  });
+  auto settings = std::vector<std::string>(
+      {"", "1024", "", "1", "16", "", "1", "bla", "0", "0"});
 
-  auto nBodyRun = new KMeansRun<float>(settings, 1024,5,34,0,0,0);
+  auto nBodyRun = new KMeansRun<float>(settings, 1024, 5, 34, 0, 0, 0);
   EXPECT_NE(nullptr, nBodyRun);
 }
 TEST_F(KMeansTest, Run) {
@@ -63,27 +52,15 @@ TEST_F(KMeansTest, Run) {
   size_t num_features = 34;
   auto size_string = std::to_string(num_points);
 
-  auto settings = std::vector<std::string>({
-      "",
-      size_string,
-      "1",
-      "1",
-      "128",
-      "1",
-      "1",
-      base_filename,
-      "0",
-      "0"
-  });
+  auto settings = std::vector<std::string>(
+      {"", size_string, "1", "1", "128", "1", "1", base_filename, "0", "0"});
 
-  auto nBodyRun = new KMeansRun<float>(settings, num_points, num_clusters, num_features, 0, 0, 0);
-  auto run = std::vector<std::shared_ptr<::Run>>({std::shared_ptr<::Run>(nBodyRun)});
-  run_harness<float>(
-      run,
-      num_points, num_clusters, num_features,
-      "testFile1", "testFile2", "testFile3",
-      true, false, false, true
-  );
+  auto nBodyRun = new KMeansRun<float>(settings, num_points, num_clusters,
+                                       num_features, 0, 0, 0);
+  auto run =
+      std::vector<std::shared_ptr<::Run>>({std::shared_ptr<::Run>(nBodyRun)});
+  run_harness<float>(run, num_points, num_clusters, num_features, "testFile1",
+                     "testFile2", "testFile3", true, false, false, true);
 
   EXPECT_TRUE(File::is_file_exist(timing_filename));
 }
