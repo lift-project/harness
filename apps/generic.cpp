@@ -5,12 +5,13 @@
 #include <queue>
 #include <thread>
 
+#include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
-
 #include <boost/program_options.hpp>
-#include "opencl_utils.h"
+
 #include "file_utils.h"
+#include "opencl_utils.h"
 
 namespace po = boost::program_options;
 namespace pt = boost::property_tree;
@@ -18,12 +19,34 @@ namespace pt = boost::property_tree;
 using namespace std;
 
 string input_file_folder;
+
 vector<int> size_arguments;
-vector<pair<string,long>> inputs;
-size_t output_size;
+vector<pair<string,size_t>> inputs;
 vector<vector<float>> read_inputs;
 
-void load_inputs(vector<pair<string,long>>& inputs) {
+size_t output_size;
+boost::optional<string> output_file;
+vector<float> gold_output;
+
+template <typename T>
+void read_file_with_size(vector<T>& contents, const string& filename, const size_t size) {
+
+  auto num_elements = size / sizeof(T);
+  contents.reserve(num_elements);
+
+  ifstream in(filename);
+
+  if (!in.good())
+    return;
+
+  while (contents.size() < num_elements) {
+    T temp;
+    in >> temp;
+    contents.push_back(temp);
+  }
+}
+
+void load_inputs_and_outputs() {
 
   cout << "Loading inputs..." << endl;
 
@@ -35,22 +58,15 @@ void load_inputs(vector<pair<string,long>>& inputs) {
     auto size = pair.second;
 
     vector<float> contents;
-    auto num_elements = size / sizeof(float);
-    contents.reserve(num_elements);
 
-    ifstream in(filename);
-
-    if (!in.good())
-      return;
-
-    while (contents.size() < num_elements) {
-      float temp;
-      in >> temp;
-
-      contents.push_back(temp);
-    }
+    read_file_with_size(contents, filename, size);
 
     read_inputs.push_back(contents);
+  }
+
+  if (output_file) {
+    auto& filename = output_file.get();
+    read_file_with_size(gold_output, filename, output_size);
   }
 
 }
@@ -66,18 +82,17 @@ void load_configuration(const string& filename) {
   for (auto& size : tree.get_child("sizes"))
     size_arguments.push_back(size.second.get_value<int>());
 
-  // TODO: optional reference output
   output_size = tree.get<size_t>("output");
+  output_file = tree.get_optional<string>("output_file");
 
   for (auto& input : tree.get_child("inputs")) {
 
     string filename = input.second.get<string>("filename");
-    long size = input.second.get<long>("size");
+    long size = input.second.get<size_t>("size");
 
     inputs.push_back({ filename, size });
 
   }
-
 
 }
 
@@ -94,15 +109,27 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
 
   if (binary) cout << "Using precompiled binaries" << endl;
 
-  load_inputs(inputs);
+  load_inputs_and_outputs();
 
   // validation function
-  // TODO: Compare to reference if provided
-  auto validate = [&](const std::vector<float> &output) { return true; };
+  auto validate = [&](const std::vector<float> &kernel_output)->bool {
+    // Reference output not provided, ignore validation
+    if (output_file) return true;
+
+    if (gold_output.size() != kernel_output.size()) return false;
+
+    for (auto i = 0; gold_output.size(); i++) {
+      auto x = gold_output[i];
+			auto y = kernel_output[i];
+
+			if (abs(x - y) > 0.0001f * max(abs(x), abs(y))) return false;
+    }
+
+    return true;
+  };
 
   // TODO: inputs?? mix of buffers and the rest
   // TODO: Other data types
-
   vector<cl::Buffer> input_buffers;
 
   for (auto& input : read_inputs) {
