@@ -8,6 +8,7 @@ import shutil
 import time
 import configparser
 import calendar
+import csv
 
 ### README ###########################################################
 # Script to start exploration run for a Lift high-level expression
@@ -43,6 +44,8 @@ parser.add_argument('--rerun', dest='rerun', action='store_true',
         help='removeBlacklist + execute')
 parser.add_argument('--removeBlacklist', dest='removeBlacklist', action='store_true',
         help='remove blacklisted files to enable re-running things')
+parser.add_argument('--findBestKernel', dest='findBestKernel', action='store_true',
+        help='find the best kernel and store it in a seperate directory')
 parser.add_argument('config', action='store', default='config',
         help='config file')
 args = parser.parse_args()
@@ -208,6 +211,69 @@ def gatherTimes():
     addHeader = "sed -i 1i\""+ csvHeader + "\" " + epochTimeCsv
     os.system(addHeader)
     os.chdir(explorationDir)
+    
+def findBestKernel():
+    printBlue("\n[INFO] Searching best kernel -- " )
+    #open the csv wich contains the measured times
+    os.chdir(explorationDir+"/"+expressionCl)
+    csvFile= open(epochTimeCsv,"r")
+    #lists for the csv values
+    rows=[]
+    times = []
+    kernels = []
+    header=0
+    #parsing the csv values
+    reader=csv.reader(csvFile)
+    rownum=0
+    for row in reader:
+        if rownum ==0: header=row
+        else:
+            colnum = 0
+            for col in row:
+                if header[colnum]=="time": times.append(col)
+                if header[colnum]=="kernel": kernels.append(col)
+                colnum+=1
+            rows.append(row) 
+        rownum += 1
+            
+    csvFile.close()
+    #find the best 
+    bestTime=99999999
+    bestKernel="null"
+    bestKernelIndex=0
+    index=0
+
+    for time in times:
+            if bestTime > float(time):
+                bestKernel=kernels[index]
+                bestTime=float(time)
+                bestKernelIndex=index
+            
+            index+=1;
+ 
+
+    os.chdir(explorationDir)
+        #save best kernel
+    command = "mkdir bestkernel; cd bestkernel ;echo \""+str(header)+"\n"+str(rows[bestKernelIndex])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+bestKernel+"*.cl' -exec cp '{}' "+explorationDir+"/bestkernel/kernel.cl \\;" 
+    os.system(command)
+        #save lowelevel expression
+    os.chdir(explorationDir+"/bestkernel")
+    command = "mkdir lowlevelexpression; find "+explorationDir+"/"+expressionLower+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","Low-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/lowlevelexpression/expression.low \\;" 
+    os.system(command)
+        #save highlevel expression
+    os.chdir(explorationDir+"/bestkernel")
+    command = "mkdir highlevelexpression; find "+explorationDir+"/"+expression+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","High-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/highlevelexpression/expression.high \\;" 
+    os.system(command)
+
+     
+    
+def getVariable(filePath,variableName):
+    ffile=open(filePath,'r').read()
+    ini=ffile.find(variableName)+(len(variableName)+1)
+    rest=ffile[ini:]
+    search_enter=rest.find('\n')
+    return rest[:search_enter]
+    
 
 def plot():
     printBlue("\n[INFO] Plotting results")
@@ -306,5 +372,6 @@ else:
     if(args.removeBlacklist): removeBlacklist()
     if(args.rerun): rerun()
     if(args.full): explore()
+    if(args.findBestKernel): findBestKernel()
 
 os.chdir(currentDir)
