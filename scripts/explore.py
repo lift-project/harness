@@ -258,11 +258,10 @@ def findBestKernel():
     os.system(command)
         #save lowelevel expression
     os.chdir(explorationDir+"/bestkernel")
-    command = "mkdir lowlevelexpression; find "+explorationDir+"/"+expressionLower+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","Low-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/lowlevelexpression/expression.low \\;" 
+    command = "find "+explorationDir+"/"+expressionLower+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","Low-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/expression.low \\;" 
     os.system(command)
         #save highlevel expression
-    os.chdir(explorationDir+"/bestkernel")
-    command = "mkdir highlevelexpression; find "+explorationDir+"/"+expression+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","High-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/highlevelexpression/expression.high \\;" 
+    command = "find "+explorationDir+"/"+expression+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","High-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/expression.high \\;" 
     os.system(command)
 
      
