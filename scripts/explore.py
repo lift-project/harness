@@ -247,6 +247,27 @@ def gatherTimes():
     addHeader = "sed -i 1i\""+ csvHeader + "\" " + epochTimeCsv
     os.system(addHeader)
     os.chdir(explorationDir)
+
+#global exploration length in mins
+explorationLength = 0
+def saveExplorationMetaInformation():
+    global explorationLength
+    os.chdir(explorationDir)
+    kernelNumber = "cd "+explorationDir+"/"+expressionCl+";  ls */*.cl | wc -l"
+    validExecutions = "find "+explorationDir+"/"+expressionCl+" -name \"" + timeCsv + "\" | xargs cat | wc -l"
+    allExecutions = "find "+explorationDir+"/"+expressionCl+" -name \"exec_" + inputSize + ".csv\" | xargs cat | wc -l"
+    liftBranch = "cd "+lift+" ; git branch | grep -e \"^*\" | cut -d' ' -f 2-"
+    liftCommit = "cd "+lift+" ; git rev-parse HEAD"
+    arithExpBranch = "cd "+lift+"/lib/ArithExpr ;  git branch | grep -e \"^*\" | cut -d' ' -f 2-"
+    arithExpCommit = "cd "+lift+"/lib/ArithExpr  ; git rev-parse HEAD"
+    harnessBranch = "cd "+executor+" ; git branch | grep -e \"^*\" | cut -d' ' -f 2-"
+    harnessCommit = "cd "+executor+" ; git rev-parse HEAD"
+    
+    
+    saveMetadataHeader = "echo \"explorationTime,kernelNumber,allExecutions,validExecutions,liftBramch,currentLiftCommit,arithExprBranch,currentArithExprCommit,harnessBranch,currentHarnessCommit\" >> metadata.csv"
+    saveExplorationTime = "echo \""+str(explorationLength)+",$("+kernelNumber+"),$("+allExecutions+"),$("+validExecutions+"),$("+liftBranch+"),$("+liftCommit+"),$("+arithExpBranch+"),$("+arithExpCommit+"),$("+harnessBranch+"),$("+harnessCommit+")\" >> metadata.csv"
+    os.system(saveMetadataHeader)
+    os.system(saveExplorationTime)
     
 def findBestKernel():
     printBlue("\n[INFO] Searching best kernel -- " )
@@ -340,11 +361,14 @@ def rerun():
 
 def explore():
     printBlue("[INFO] Starting exploration -- " + expression)
+    global explorationLength
     start = time.time()
     rewrite()
     execute()
     end = time.time()
     elapsed = (end-start)/60
+    explorationLength=elapsed
+    saveExplorationMetaInformation()
     printBlue("[INFO] Finished exploration! Took " + str(elapsed) + " minutes to execute")
     printSummary()
 
