@@ -20,6 +20,8 @@ import csv
 
 ### ARGPARSER ########################################################
 parser = argparse.ArgumentParser( description='Lift exploration utility')
+parser.add_argument('--environment', dest='envConf', action='store', default='~/.lift/environment.conf',
+        help='environment config. If there is no such file the mkEnvironemnt.sh will be executed.')
 parser.add_argument('--clean', dest='clean', action='store_true',
         help='clean all generated folders and log-files')
 parser.add_argument('--highLevelRewrite', dest='highLevelRewrite', action='store_true',
@@ -51,14 +53,47 @@ parser.add_argument('config', action='store', default='config',
 args = parser.parse_args()
 
 # CONFIG (PARSER) ##################################################
+# environment config
+def mkEnvironment(path):
+    scriptsDir = os.path.dirname(os.path.realpath(__file__))
+    subprocess.call([scriptsDir+"/mkEnvironment.sh",path])
+
+#check if environment config exists
+envConf = os.path.abspath(os.path.expanduser(args.envConf))
+print('[INFO] using environment config '+envConf)
+if os.path.exists(envConf):
+    if not os.path.isfile(envConf):
+        sys.exit("[ERROR] environment config already exists but it's not a file.")
+else:
+    mkEnvironment(envConf)
+    if not os.path.exists(envConf):
+        sys.exit("[ERROR] environment config file was not found and could not be created.")
+envConfigParser = configparser.RawConfigParser()
+envConfigParser.read(envConf)
+
 # check if config exists
-if not os.path.exists(args.config): sys.exit("[ERROR] config file not found!")
+print('[INFO] using explore config '+args.config)
+configPath = os.path.expanduser(args.config)
+if not os.path.exists(configPath): sys.exit("[ERROR] config file not found!")
 configParser = configparser.RawConfigParser()
-configParser.read(args.config)
+configParser.read(configPath)
+
+
+
+### ENVIRONMENT
+lift=envConfigParser.get('Path','Lift')
+executor=envConfigParser.get('Path','Executor')
+Rscript=envConfigParser.get('Path','Rscript')
+
+clPlattform=envConfigParser.get('OpenCl','Platform')
+clDevice=envConfigParser.get('OpenCl','Device')
+
+lift = os.path.normpath(lift)
+executor = os.path.normpath(executor)
+Rscript = os.path.normpath(Rscript)
+
 
 ### GENERAL
-lift = configParser.get('General', 'Lift')
-executor = configParser.get('General', 'Executor')
 expression = configParser.get('General', 'Expression')
 inputSize = configParser.get('General', 'InputSize')
 name = configParser.get('General', 'Name')
@@ -104,7 +139,7 @@ exploreNDRange = configParser.get('ParameterRewrite', 'ExploreNDRange')
 sampleNDRange = configParser.get('ParameterRewrite', 'SampleNDRange')
 disableNDRangeInjection = configParser.get('ParameterRewrite', 'DisableNDRangeInjection')
 sequential = configParser.get('ParameterRewrite', 'Sequential')
-parameterRewriteArgs = " --file " + lift + "highLevel/" + settings 
+parameterRewriteArgs = " --file " + lift + "/highLevel/" + settings 
 if(sequential == "true"): parameterRewriteArgs += " --sequential"
 if(disableNDRangeInjection == "true"): parameterRewriteArgs += " --disableNDRangeInjection"
 if(exploreNDRange == "true"): parameterRewriteArgs += " --exploreNDRange"
@@ -112,9 +147,11 @@ if (exploreNDRange == "true")and not (sampleNDRange == ""): parameterRewriteArgs
 
 ### HARNESSS
 harness = configParser.get('Harness', 'Name')
-#platform = configParser.get('Harness', 'Platform')
-#harnessArgs = " -p " + platform + " -s " + inputSize
 harnessArgs = " " + configParser.get('Harness', 'Args')
+if clPlattform != "":
+    harnessArgs += ' -p ' + clPlattform
+if clDevice != "":
+    harnessArgs += ' -d ' + clDevice
 
 ### CSV
 #csvHeader = "kernel,time,lsize0,lsize1,lsize2"
@@ -124,7 +161,6 @@ timeCsv = "time_" + inputSize + ".csv"
 blacklistCsv = "blacklist_" + inputSize + ".csv"
 
 ### R
-Rscript = configParser.get('R', 'Script')
 output = expression + "_" + inputSize +  "_" + name + ".pdf"
 RscriptArgs = " --file " + epochTimeCsv + " --out " + output
 
@@ -134,7 +170,7 @@ explorationDir = currentDir + "/" + name
 expressionLower = expression + "Lower"
 expressionCl = expression + "Cl"
 plotsDir = "plots"
-scriptsDir = lift + "scripts/compiled_scripts/"
+scriptsDir = lift + "/scripts/compiled_scripts/"
 
 # HELPER FUNCTIONS #################################################
 def printBlue( string ):
@@ -181,7 +217,7 @@ def callExplorationStage(rewrite, args):
     subprocess.call([scriptsDir + rewrite, args])
 
 def highLevelRewrite():
-    args = highLevelRewriteArgs + " " + lift + "highLevel/" + expression
+    args = highLevelRewriteArgs + " " + lift + "/highLevel/" + expression
     callExplorationStage("HighLevelRewrite", args)
 
 def memoryMappingRewrite():
