@@ -45,7 +45,7 @@ Lift = $liftLocation
 Executor = $executorLocation
 Rscript = $plotscriptLocation
 
-[OpenCl]
+[OpenCL]
 Platform = $clPlattform
 Device = $clDevice
 EOF
