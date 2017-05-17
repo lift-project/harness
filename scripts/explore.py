@@ -85,8 +85,8 @@ lift=envConfigParser.get('Path','Lift')
 executor=envConfigParser.get('Path','Executor')
 Rscript=envConfigParser.get('Path','Rscript')
 
-clPlattform=envConfigParser.get('OpenCl','Platform')
-clDevice=envConfigParser.get('OpenCl','Device')
+clPlattform=envConfigParser.get('OpenCL','Platform')
+clDevice=envConfigParser.get('OpenCL','Device')
 
 lift = os.path.normpath(lift)
 executor = os.path.normpath(executor)
