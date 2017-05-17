@@ -64,13 +64,17 @@ class File {
 		file_append(incompatible_filename, hash);
 	}
 
-	static void add_time(const std::string &hash, double time, cl::NDRange local_size) {
+	static void add_time(const std::string &hash, double time, cl::NDRange global_size,cl::NDRange local_size) {
 		if (local_size.dimensions() != 0) {
-			auto sizes = (const size_t *)local_size;
+			auto lc_sizes = (const size_t *)local_size;
+			auto gl_sizes = (const size_t *)global_size;
 			file_append(timing_filename, hash + "," + std::to_string(time) + "," +
-							 std::to_string(sizes[0]) + "," +
-							 std::to_string(sizes[1]) + "," +
-							 std::to_string(sizes[2]));
+							 std::to_string(gl_sizes[0]) + "," +
+							 std::to_string(gl_sizes[1]) + "," +
+							 std::to_string(gl_sizes[2]) + "," +
+							 std::to_string(lc_sizes[0]) + "," +
+							 std::to_string(lc_sizes[1]) + "," +
+							 std::to_string(lc_sizes[2]));
 		} else {
 			file_append(timing_filename, hash + "," + std::to_string(time));
 		}

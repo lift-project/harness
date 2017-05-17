@@ -115,7 +115,7 @@ class OpenCL {
 				sort(times.begin(), times.end());
 				auto median = times[times.size() / 2];
 				// Save result to file
-				File::add_time(run.hash, median, local_size);
+				File::add_time(run.hash, median, cl::NDRange(run.glob1, run.glob2, run.glob3),local_size);
 				best_time = min(best_time, median);
 				std::cout << "[" << counter << "] best time: " << median;
 				if (median > timeout) std::cout << " (timeout: " << timeout << ")";
