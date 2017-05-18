@@ -231,7 +231,7 @@ def parameterRewrite():
 def runHarness():
     printBlue("\n[INFO] Running Harness recursively")
     pathToHarness = executor + "/build/" + harness
-    shutil.copy2(pathToHarness, expressionCl+"/")
+    shutil.copy2(pathToHarness, expressionCl)
     os.chdir(expressionCl)
     # recursively access every subdirectory and execute harness with harnessArgs
     command = "for d in ./*/ ; do (cp " + harness + " \"$d\" && cd \"$d\" && ./"+ harness + harnessArgs + "); done"
