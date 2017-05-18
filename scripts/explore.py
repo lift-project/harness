@@ -34,14 +34,14 @@ parser.add_argument('--runHarness', dest='runHarness', action='store_true',
         help='run harness recursively')
 parser.add_argument('--gatherTimes', dest='gatherTimes', action='store_true',
         help='gather runtimes in csv')
-parser.add_argument('--plot', dest='plot', action='store_true',
-        help='plot csv')
+#parser.add_argument('--plot', dest='plot', action='store_true',
+#        help='plot csv')
 parser.add_argument('--full', dest='full', action='store_true',
         help='start full exploration run (rewrite -> execute)')
 parser.add_argument('--rewrite', dest='rewrite', action='store_true',
         help='start rewriting process')
 parser.add_argument('--execute', dest='execute', action='store_true',
-        help='execute and plot kernels')
+        help='execute')
 parser.add_argument('--rerun', dest='rerun', action='store_true',
         help='removeBlacklist + execute')
 parser.add_argument('--removeBlacklist', dest='removeBlacklist', action='store_true',
@@ -169,7 +169,7 @@ currentDir = os.getcwd() #current working directory
 explorationDir = currentDir + "/" + name
 expressionLower = expression + "Lower"
 expressionCl = expression + "Cl"
-plotsDir = "plots"
+#plotsDir = "plots"
 scriptsDir = lift + "/scripts/compiled_scripts/"
 
 # HELPER FUNCTIONS #################################################
@@ -231,7 +231,7 @@ def parameterRewrite():
 def runHarness():
     printBlue("\n[INFO] Running Harness recursively")
     pathToHarness = executor + "/build/" + harness
-    shutil.copy2(pathToHarness, expressionCl)
+    shutil.copy2(pathToHarness, expressionCl+"/")
     os.chdir(expressionCl)
     # recursively access every subdirectory and execute harness with harnessArgs
     command = "for d in ./*/ ; do (cp " + harness + " \"$d\" && cd \"$d\" && ./"+ harness + harnessArgs + "); done"
@@ -331,15 +331,15 @@ def getVariable(filePath,variableName):
     return rest[:search_enter]
     
 
-def plot():
-    printBlue("\n[INFO] Plotting results")
-    silent_mkdir(plotsDir)
-    shutil.copy2(expressionCl + "/" + epochTimeCsv, plotsDir)
-    shutil.copy2(Rscript, plotsDir)
-    os.chdir(plotsDir)
-    command = "Rscript " + Rscript + RscriptArgs
-    os.system(command)
-    os.chdir(explorationDir)
+#def plot():
+#    printBlue("\n[INFO] Plotting results")
+#    silent_mkdir(plotsDir)
+#    shutil.copy2(expressionCl + "/" + epochTimeCsv, plotsDir)
+#    shutil.copy2(Rscript, plotsDir)
+#    os.chdir(plotsDir)
+#    command = "Rscript " + Rscript + RscriptArgs
+#    os.system(command)
+#    os.chdir(explorationDir)
 
 def rewrite():
     printBlue("[INFO] Start rewriting process")
@@ -351,7 +351,7 @@ def execute():
     printBlue("[INFO] Execute generated kernels")
     runHarness()
     gatherTimes()
-    plot()
+#   plot()
 
 def rerun():
     printBlue("[INFO] Rerunning:")
@@ -425,7 +425,7 @@ else:
     if(args.parameterRewrite): parameterRewrite()
     if(args.runHarness): runHarness()
     if(args.gatherTimes): gatherTimes()
-    if(args.plot): plot()
+#   if(args.plot): plot()
     if(args.rewrite): rewrite()
     if(args.execute): execute()
     if(args.removeBlacklist): removeBlacklist()

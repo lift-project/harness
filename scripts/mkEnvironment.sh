@@ -30,7 +30,7 @@ mkdir -p $confDir # create dir if nonexistent
 printf "\nSet up the paths.\n"
 read -e -p "Where is lift located? : " -i "$DEFAULT_LIFT_LOCATION" liftLocation
 read -e -p "Where is harness located? : " -i "$DEFAULT_HARNESS_LOCATION" executorLocation
-read -e -p "Where the R plot script located? : " -i "$DEFAULT_PLOTSCRIPT_LOCATION" plotscriptLocation
+#read -e -p "Where the R plot script located? : " -i "$DEFAULT_PLOTSCRIPT_LOCATION" plotscriptLocation
 
 
 # ask for the openCL setup
