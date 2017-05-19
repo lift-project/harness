@@ -73,18 +73,21 @@ public:
     file_append(incompatible_filename, hash);
   }
 
-  static void add_time(const std::string &hash, double time,
-                       cl::NDRange local_size) {
-    if (local_size.dimensions() != 0) {
-      auto sizes = (const size_t *)local_size;
-      file_append(timing_filename, hash + "," + std::to_string(time) + "," +
-                                       std::to_string(sizes[0]) + "," +
-                                       std::to_string(sizes[1]) + "," +
-                                       std::to_string(sizes[2]));
-    } else {
-      file_append(timing_filename, hash + "," + std::to_string(time));
-    }
-  }
+  static void add_time(const std::string &hash, double time, cl::NDRange global_size,cl::NDRange local_size) {
+		if (local_size.dimensions() != 0) {
+			auto local_sizes = (const size_t *)local_size;
+			auto global_sizes = (const size_t *)global_size;
+			file_append(timing_filename, hash + "," + std::to_string(time) + "," +
+							 std::to_string(global_sizes[0]) + "," +
+							 std::to_string(global_sizes[1]) + "," +
+							 std::to_string(global_sizes[2]) + "," +
+							 std::to_string(local_sizes[0]) + "," +
+							 std::to_string(local_sizes[1]) + "," +
+							 std::to_string(local_sizes[2]));
+		} else {
+			file_append(timing_filename, hash + "," + std::to_string(time));
+		}
+	}
 
   static void add_compileerror(const std::string &hash) {
     file_append(compileerror_filename, hash);

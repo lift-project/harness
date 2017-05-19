@@ -8,6 +8,7 @@ import shutil
 import time
 import configparser
 import calendar
+import csv
 
 ### README ###########################################################
 # Script to start exploration run for a Lift high-level expression
@@ -19,6 +20,8 @@ import calendar
 
 ### ARGPARSER ########################################################
 parser = argparse.ArgumentParser( description='Lift exploration utility')
+parser.add_argument('--environment', dest='envConf', action='store', default='~/.lift/environment.conf',
+        help='environment config. If there is no such file the mkEnvironemnt.sh will be executed.')
 parser.add_argument('--clean', dest='clean', action='store_true',
         help='clean all generated folders and log-files')
 parser.add_argument('--highLevelRewrite', dest='highLevelRewrite', action='store_true',
@@ -31,31 +34,66 @@ parser.add_argument('--runHarness', dest='runHarness', action='store_true',
         help='run harness recursively')
 parser.add_argument('--gatherTimes', dest='gatherTimes', action='store_true',
         help='gather runtimes in csv')
-parser.add_argument('--plot', dest='plot', action='store_true',
-        help='plot csv')
+#parser.add_argument('--plot', dest='plot', action='store_true',
+#        help='plot csv')
 parser.add_argument('--full', dest='full', action='store_true',
         help='start full exploration run (rewrite -> execute)')
 parser.add_argument('--rewrite', dest='rewrite', action='store_true',
         help='start rewriting process')
 parser.add_argument('--execute', dest='execute', action='store_true',
-        help='execute and plot kernels')
+        help='execute')
 parser.add_argument('--rerun', dest='rerun', action='store_true',
         help='removeBlacklist + execute')
 parser.add_argument('--removeBlacklist', dest='removeBlacklist', action='store_true',
         help='remove blacklisted files to enable re-running things')
+parser.add_argument('--findBestKernel', dest='findBestKernel', action='store_true',
+        help='find the best kernel and store it in a seperate directory')
 parser.add_argument('config', action='store', default='config',
         help='config file')
 args = parser.parse_args()
 
 # CONFIG (PARSER) ##################################################
+# environment config
+def mkEnvironment(path):
+    scriptsDir = os.path.dirname(os.path.realpath(__file__))
+    subprocess.call([scriptsDir+"/mkEnvironment.sh",path])
+
+#check if environment config exists
+envConf = os.path.abspath(os.path.expanduser(args.envConf))
+print('[INFO] using environment config '+envConf)
+if os.path.exists(envConf):
+    if not os.path.isfile(envConf):
+        sys.exit("[ERROR] environment config already exists but it's not a file.")
+else:
+    mkEnvironment(envConf)
+    if not os.path.exists(envConf):
+        sys.exit("[ERROR] environment config file was not found and could not be created.")
+envConfigParser = configparser.RawConfigParser()
+envConfigParser.read(envConf)
+
 # check if config exists
-if not os.path.exists(args.config): sys.exit("[ERROR] config file not found!")
+print('[INFO] using explore config '+args.config)
+configPath = os.path.expanduser(args.config)
+if not os.path.exists(configPath): sys.exit("[ERROR] config file not found!")
 configParser = configparser.RawConfigParser()
-configParser.read(args.config)
+configParser.read(configPath)
+
+
+
+### ENVIRONMENT
+lift=envConfigParser.get('Path','Lift')
+executor=envConfigParser.get('Path','Executor')
+Rscript=envConfigParser.get('Path','Rscript')
+
+clPlattform=envConfigParser.get('OpenCL','Platform')
+clDevice=envConfigParser.get('OpenCL','Device')
+
+lift = os.path.normpath(lift)
+executor = os.path.normpath(executor)
+Rscript = os.path.normpath(Rscript)
+
 
 ### GENERAL
-lift = configParser.get('General', 'Lift')
-executor = configParser.get('General', 'Executor')
 expression = configParser.get('General', 'Expression')
 inputSize = configParser.get('General', 'InputSize')
 name = configParser.get('General', 'Name')
@@ -101,7 +139,7 @@ exploreNDRange = configParser.get('ParameterRewrite', 'ExploreNDRange')
 sampleNDRange = configParser.get('ParameterRewrite', 'SampleNDRange')
 disableNDRangeInjection = configParser.get('ParameterRewrite', 'DisableNDRangeInjection')
 sequential = configParser.get('ParameterRewrite', 'Sequential')
-parameterRewriteArgs = " --file " + lift + "highLevel/" + settings 
+parameterRewriteArgs = " --file " + lift + "/highLevel/" + settings 
 if(sequential == "true"): parameterRewriteArgs += " --sequential"
 if(disableNDRangeInjection == "true"): parameterRewriteArgs += " --disableNDRangeInjection"
 if(exploreNDRange == "true"): parameterRewriteArgs += " --exploreNDRange"
@@ -109,9 +147,11 @@ if (exploreNDRange == "true")and not (sampleNDRange == ""): parameterRewriteArgs
 
 ### HARNESSS
 harness = configParser.get('Harness', 'Name')
-#platform = configParser.get('Harness', 'Platform')
-#harnessArgs = " -p " + platform + " -s " + inputSize
 harnessArgs = " " + configParser.get('Harness', 'Args')
+if clPlattform != "":
+    harnessArgs += ' -p ' + clPlattform
+if clDevice != "":
+    harnessArgs += ' -d ' + clDevice
 
 ### CSV
 #csvHeader = "kernel,time,lsize0,lsize1,lsize2"
@@ -121,7 +161,6 @@ timeCsv = "time_" + inputSize + ".csv"
 blacklistCsv = "blacklist_" + inputSize + ".csv"
 
 ### R
-Rscript = configParser.get('R', 'Script')
 output = expression + "_" + inputSize +  "_" + name + ".pdf"
 RscriptArgs = " --file " + epochTimeCsv + " --out " + output
 
@@ -130,8 +169,8 @@ currentDir = os.getcwd() #current working directory
 explorationDir = currentDir + "/" + name
 expressionLower = expression + "Lower"
 expressionCl = expression + "Cl"
-plotsDir = "plots"
-scriptsDir = lift + "scripts/compiled_scripts/"
+#plotsDir = "plots"
+scriptsDir = lift + "/scripts/compiled_scripts/"
 
 # HELPER FUNCTIONS #################################################
 def printBlue( string ):
@@ -178,7 +217,7 @@ def callExplorationStage(rewrite, args):
     subprocess.call([scriptsDir + rewrite, args])
 
 def highLevelRewrite():
-    args = highLevelRewriteArgs + " " + lift + "highLevel/" + expression
+    args = highLevelRewriteArgs + " " + lift + "/highLevel/" + expression
     callExplorationStage("HighLevelRewrite", args)
 
 def memoryMappingRewrite():
@@ -209,15 +248,98 @@ def gatherTimes():
     os.system(addHeader)
     os.chdir(explorationDir)
 
-def plot():
-    printBlue("\n[INFO] Plotting results")
-    silent_mkdir(plotsDir)
-    shutil.copy2(expressionCl + "/" + epochTimeCsv, plotsDir)
-    shutil.copy2(Rscript, plotsDir)
-    os.chdir(plotsDir)
-    command = "Rscript " + Rscript + RscriptArgs
-    os.system(command)
+#global exploration length in mins
+explorationLength = 0
+def saveExplorationMetaInformation():
+    global explorationLength
     os.chdir(explorationDir)
+    kernelNumber = "cd "+explorationDir+"/"+expressionCl+";  ls */*.cl | wc -l"
+    validExecutions = "find "+explorationDir+"/"+expressionCl+" -name \"" + timeCsv + "\" | xargs cat | wc -l"
+    allExecutions = "find "+explorationDir+"/"+expressionCl+" -name \"exec_" + inputSize + ".csv\" | xargs cat | wc -l"
+    liftBranch = "cd "+lift+" ; git branch | grep -e \"^*\" | cut -d' ' -f 2-"
+    liftCommit = "cd "+lift+" ; git rev-parse HEAD"
+    arithExpBranch = "cd "+lift+"/lib/ArithExpr ;  git branch | grep -e \"^*\" | cut -d' ' -f 2-"
+    arithExpCommit = "cd "+lift+"/lib/ArithExpr  ; git rev-parse HEAD"
+    harnessBranch = "cd "+executor+" ; git branch | grep -e \"^*\" | cut -d' ' -f 2-"
+    harnessCommit = "cd "+executor+" ; git rev-parse HEAD"
+    
+    
+    saveMetadataHeader = "echo \"explorationTime,kernelNumber,allExecutions,validExecutions,liftBramch,currentLiftCommit,arithExprBranch,currentArithExprCommit,harnessBranch,currentHarnessCommit\" >> metadata.csv"
+    saveExplorationTime = "echo \""+str(explorationLength)+",$("+kernelNumber+"),$("+allExecutions+"),$("+validExecutions+"),$("+liftBranch+"),$("+liftCommit+"),$("+arithExpBranch+"),$("+arithExpCommit+"),$("+harnessBranch+"),$("+harnessCommit+")\" >> metadata.csv"
+    os.system(saveMetadataHeader)
+    os.system(saveExplorationTime)
+    
+def findBestKernel():
+    printBlue("\n[INFO] Searching best kernel -- " )
+    #open the csv wich contains the measured times
+    os.chdir(explorationDir+"/"+expressionCl)
+    csvFile= open(epochTimeCsv,"r")
+    #lists for the csv values
+    rows=[]
+    times = []
+    kernels = []
+    header=0
+    #parsing the csv values
+    reader=csv.reader(csvFile)
+    rownum=0
+    for row in reader:
+        if rownum ==0: header=row
+        else:
+            colnum = 0
+            for col in row:
+                if header[colnum]=="time": times.append(col)
+                if header[colnum]=="kernel": kernels.append(col)
+                colnum+=1
+            rows.append(row) 
+        rownum += 1
+            
+    csvFile.close()
+    #find the best 
+    bestTime=99999999
+    bestKernel="null"
+    bestKernelIndex=0
+    index=0
+
+    for time in times:
+            if bestTime > float(time):
+                bestKernel=kernels[index]
+                bestTime=float(time)
+                bestKernelIndex=index
+            
+            index+=1;
+ 
+
+    os.chdir(explorationDir)
+        #save best kernel
+    command = "mkdir bestkernel; cd bestkernel ;echo \""+str(header)+"\n"+str(rows[bestKernelIndex])+"\" > kernelinfo.csv ;find "+explorationDir+"/"+expressionCl+" -name '"+bestKernel+"*.cl' -exec cp '{}' "+explorationDir+"/bestkernel/kernel.cl \\;" 
+    os.system(command)
+        #save lowelevel expression
+    os.chdir(explorationDir+"/bestkernel")
+    command = "find "+explorationDir+"/"+expressionLower+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","Low-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/expression.low \\;" 
+    os.system(command)
+        #save highlevel expression
+    command = "find "+explorationDir+"/"+expression+" -name '"+getVariable(explorationDir+"/bestkernel/kernel.cl","High-level hash:")+"' -exec cp -r '{}' "+explorationDir+"/bestkernel/expression.high \\;" 
+    os.system(command)
+
+     
+    
+def getVariable(filePath,variableName):
+    ffile=open(filePath,'r').read()
+    ini=ffile.find(variableName)+(len(variableName)+1)
+    rest=ffile[ini:]
+    search_enter=rest.find('\n')
+    return rest[:search_enter]
+    
+
+#def plot():
+#    printBlue("\n[INFO] Plotting results")
+#    silent_mkdir(plotsDir)
+#    shutil.copy2(expressionCl + "/" + epochTimeCsv, plotsDir)
+#    shutil.copy2(Rscript, plotsDir)
+#    os.chdir(plotsDir)
+#    command = "Rscript " + Rscript + RscriptArgs
+#    os.system(command)
+#    os.chdir(explorationDir)
 
 def rewrite():
     printBlue("[INFO] Start rewriting process")
@@ -229,7 +351,7 @@ def execute():
     printBlue("[INFO] Execute generated kernels")
     runHarness()
     gatherTimes()
-    plot()
+#   plot()
 
 def rerun():
     printBlue("[INFO] Rerunning:")
@@ -239,11 +361,14 @@ def rerun():
 
 def explore():
     printBlue("[INFO] Starting exploration -- " + expression)
+    global explorationLength
     start = time.time()
     rewrite()
     execute()
     end = time.time()
     elapsed = (end-start)/60
+    explorationLength=elapsed
+    saveExplorationMetaInformation()
     printBlue("[INFO] Finished exploration! Took " + str(elapsed) + " minutes to execute")
     printSummary()
 
@@ -300,11 +425,12 @@ else:
     if(args.parameterRewrite): parameterRewrite()
     if(args.runHarness): runHarness()
     if(args.gatherTimes): gatherTimes()
-    if(args.plot): plot()
+#   if(args.plot): plot()
     if(args.rewrite): rewrite()
     if(args.execute): execute()
     if(args.removeBlacklist): removeBlacklist()
     if(args.rerun): rerun()
     if(args.full): explore()
+    if(args.findBestKernel): findBestKernel()
 
 os.chdir(currentDir)
