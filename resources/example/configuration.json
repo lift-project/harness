@@ -1,0 +1,9 @@
+{
+  "kernel" : "example",
+  "inputs" : [ {
+    "filename" : "4_float",
+    "size" : 16
+  } ],
+  "output" : 16,
+  "sizes" : [ 4 ]
+}

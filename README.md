@@ -1,3 +1,28 @@
 # README #
 
-[![Build Status](http://skelter.inf.ed.ac.uk:8080/job/executor/job/master/badge/icon)](http://skelter.inf.ed.ac.uk:8080/job/executor/job/master/)
+## Requirements ##
+
+- C++ compiler with C++11 support
+
+- CMake
+
+- Boost
+
+- an OpenCL installation
+
+## Compilation ##
+
+```
+mkdir build && cd build
+cmake ..
+make
+```
+
+## Running the Example ##
+
+Assuming the build folder is in your `PATH`.
+
+```
+cd resources/example
+harness_generic -f configuration.json
+```
