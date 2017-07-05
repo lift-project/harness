@@ -40,7 +40,9 @@ set(SOURCE_FILES
     src/run.cpp
     src/file_utils.cpp
     src/csv_utils.cpp
-    src/opencl_utils.cpp)
+    src/opencl_utils.cpp
+    src/mmio.cpp
+    src/sparse_matrix.cpp)
 
 add_library (Executor ${SOURCE_FILES})
 
@@ -68,6 +70,7 @@ add_app(convolutionSeparableY)
 add_app(srad1)
 add_app(srad2)
 add_app(acoustic3D)
+add_app(spmv)
 
 enable_testing()
 add_subdirectory(test)

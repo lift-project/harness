@@ -1,14 +1,14 @@
-#include <string>
-#include <vector>
-#include <iostream>
 #include <condition_variable>
+#include <iostream>
 #include <queue>
+#include <string>
 #include <thread>
+#include <vector>
 
 #include <boost/optional.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/program_options.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include "file_utils.h"
 #include "opencl_utils.h"
@@ -268,36 +268,35 @@ int main(int argc, const char *const *argv) {
 
   po::options_description description("Allowed options");
 
-  description.add_options()
-    ("help,h", "Produce this message")
-    ("file,f", po::value<string>(&input_file)->required(),
-      "The input configuration file.")
-    ("folder", po::value<string>(&input_file_folder)->default_value("."),
-      "The folder where to look for input data files.")
-    ("platform,p", po::value<unsigned>(&platform)->default_value(0),
-      "OpenCL platform index")
-    ("device,d", po::value<unsigned>(&device)->default_value(0),
-      "OpenCL device index")
-    ("timeout,t", po::value<float>(&OpenCL::timeout)->default_value(100.0f),
-      "Timeout to avoid multiple executions")
-    ("iterations,i", po::value<int>(&OpenCL::iterations)->default_value(10),
-      "Number of iterations for each experiment")
-    ("local-combinations,l", po::value<bool>(&OpenCL::local_combinations)->default_value(false),
+  description.add_options()("help,h", "Produce this message")(
+      "file,f", po::value<string>(&input_file)->required(),
+      "The input configuration file.")(
+      "folder", po::value<string>(&input_file_folder)->default_value("."),
+      "The folder where to look for input data files.")(
+      "platform,p", po::value<unsigned>(&platform)->default_value(0),
+      "OpenCL platform index")("device,d",
+                               po::value<unsigned>(&device)->default_value(0),
+                               "OpenCL device index")(
+      "timeout,t", po::value<float>(&OpenCL::timeout)->default_value(100.0f),
+      "Timeout to avoid multiple executions")(
+      "iterations,i", po::value<int>(&OpenCL::iterations)->default_value(10),
+      "Number of iterations for each experiment")(
+      "local-combinations,l",
+      po::value<bool>(&OpenCL::local_combinations)->default_value(false),
       "Run different valid combinations of local sizes instead of letting the "
-      "implementation choose if the local size is marked '?'.")
-    ("l0", po::value<unsigned>(&local_0)->default_value(0),
-      "Local size in dim 0 to use if specified as '?'")
-    ("l1", po::value<unsigned>(&local_1)->default_value(0),
-      "Local size in dim 1 to use if specified as '?'")
-    ("l2", po::value<unsigned>(&local_2)->default_value(0),
-      "Local size in dim 2 to use if specified as '?'")
-    ("min-local", po::value<size_t>(&OpenCL::min_local_size)->default_value(1),
-      "The minimum local size to use when running the experiments")
-    ("b,binary", po::value<bool>(&binary)->default_value(false),
-      "Load programs as binaries instead of compiling OpenCL-C source.")
-    ("threaded", po::value<bool>(&threaded),
-      "Use a separate thread for compilation and execution")
-    ;
+      "implementation choose if the local size is marked '?'.")(
+      "l0", po::value<unsigned>(&local_0)->default_value(0),
+      "Local size in dim 0 to use if specified as '?'")(
+      "l1", po::value<unsigned>(&local_1)->default_value(0),
+      "Local size in dim 1 to use if specified as '?'")(
+      "l2", po::value<unsigned>(&local_2)->default_value(0),
+      "Local size in dim 2 to use if specified as '?'")(
+      "min-local", po::value<size_t>(&OpenCL::min_local_size)->default_value(1),
+      "The minimum local size to use when running the experiments")(
+      "b,binary", po::value<bool>(&binary)->default_value(false),
+      "Load programs as binaries instead of compiling OpenCL-C source.")(
+      "threaded", po::value<bool>(&threaded),
+      "Use a separate thread for compilation and execution");
 
   try {
 
@@ -345,4 +344,3 @@ int main(int argc, const char *const *argv) {
 
   run_harness(all_run, threaded, binary);
 }
-
