@@ -17,6 +17,17 @@
 // #include <SkelCL/Vector.h>
 // #include "sparseStructs.h"
 
+// An OpenCL sparse matrix is one that we can build kernel args directly from
+template <typename T> class OpenCLSparseMatrix {
+public:
+  OpenCLSparseMatrix(int r, int l, std::vector<int> ixs, std::vector<T> vals)
+      : rows(r), rowlen(l), indices(ixs), values(vals){};
+  const int rows;
+  const int rowlen;
+  const std::vector<int> indices;
+  const std::vector<T> values;
+};
+
 class SparseMatrix {
 public:
   // Constructors

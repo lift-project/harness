@@ -5,6 +5,8 @@
 
 #include "kernel.h"
 
+// Kernel
+
 Kernel::Kernel(std::string filename) {
   boost::property_tree::ptree tree;
 
@@ -12,6 +14,8 @@ Kernel::Kernel(std::string filename) {
 
   name = tree.get<std::string>("name");
   source = tree.get<std::string>("source");
+
+  kprops = KernelProperties(name);
 
   std::cout << "Kernel: " << name << ", source: \n" << source << std::endl;
 
@@ -31,3 +35,15 @@ std::string Kernel::getSource() { return source; }
 std::string Kernel::getName() { return name; }
 
 std::vector<KernelArg> Kernel::getArgs() { return args; }
+
+KernelProperties Kernel::getProperties() { return kprops; }
+
+// KernelProperties
+
+KernelProperties::KernelProperties() {
+  // dummy initialiser
+}
+
+KernelProperties::KernelProperties(std::string kname) : argcache(kname) {
+  // do nothing for now
+}

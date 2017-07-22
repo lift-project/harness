@@ -50,6 +50,8 @@ void compute_gold(const size_t M, const size_t N, const size_t O,
   File::save_input(roomt, roomt_file);
 }
 
+// void run_harness()
+
 void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M,
                  const size_t N, const size_t O,
                  const std::string &roomtminus1_file,

@@ -44,6 +44,8 @@ int main(int argc, char *argv[]) {
       op.addOption<std::string>({'m', "matrix", "Input matrix"});
   auto opt_kernel_file =
       op.addOption<std::string>({'k', "kernel", "Input kernel"});
+  auto opt_run_file =
+      op.addOption<std::string>({'r', "runfile", "Run configuration file"});
 
   auto opt_binary = op.addOption<bool>(
       {'b', "binary",
@@ -79,26 +81,19 @@ int main(int argc, char *argv[]) {
 
   auto ellmat = matrix.asELLPACK<double>();
 
-  //   std::cout << "Values: " << std::endl;
-  //   for (auto row : soa_ellmat.second) {
-  //     std::cout << "[";
-  //     for (auto elem : row) {
-  //       std::cout << elem << ",";
-  //     }
-  //     std::cout << "]" << std::endl;
-  //   }
+  // specialise the matrix for the kernel given
 
   OpenCL::timeout = opt_timeout->get();
 
   // temporary files
 
   //   // === Loading exec CSV file ===
-  std::vector<std::shared_ptr<Run>> all_run = Csv::init(
-      [&](const std::vector<std::string> &values) -> std::shared_ptr<Run> {
-        return std::shared_ptr<Run>(new Run3D(values, M, N, O));
-      });
-  if (all_run.size() == 0)
-    return 0;
+  //   std::vector<std::shared_ptr<Run>> all_run = Csv::init(
+  //       [&](const std::vector<std::string> &values) -> std::shared_ptr<Run> {
+  //         return std::shared_ptr<Run>(new Run3D(values, M, N, O));
+  //       });
+  //   if (all_run.size() == 0)
+  //     return 0;
 
   //   // === OpenCL init ===
   OpenCL::init(opt_platform->get(), opt_device->get(), opt_iterations->get());
