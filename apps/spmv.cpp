@@ -93,12 +93,12 @@ int main(int argc, char *argv[]) {
   // temporary files
 
   //   // === Loading exec CSV file ===
-  //   std::vector<std::shared_ptr<Run>> all_run = Csv::init(
-  //       [&](const std::vector<std::string> &values) -> std::shared_ptr<Run> {
-  //         return std::shared_ptr<Run>(new Run3D(values, M, N, O));
-  //       });
-  //   if (all_run.size() == 0)
-  //     return 0;
+  std::vector<std::shared_ptr<Run>> all_run = Csv::init(
+      [&](const std::vector<std::string> &values) -> std::shared_ptr<Run> {
+        return std::shared_ptr<Run>(new Run3D(values, M, N, O));
+      });
+  if (all_run.size() == 0)
+    return 0;
 
   //   // === OpenCL init ===
   OpenCL::init(opt_platform->get(), opt_device->get(), opt_iterations->get());
