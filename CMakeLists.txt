@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(Executor)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -pthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -pthread -fPIC")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules/")
 
 include_directories(common)
@@ -23,16 +23,16 @@ ExternalProject_Add(
 )
 
 # Create a libgtest target to be used as a dependency by test programs
-add_library(libgtest IMPORTED STATIC GLOBAL)
-add_dependencies(libgtest gtest)
+# add_library(libgtest IMPORTED STATIC GLOBAL)
+# add_dependencies(libgtest gtest)
 
 # Set gtest properties
-ExternalProject_Get_Property(gtest source_dir binary_dir)
-set_target_properties(libgtest PROPERTIES
-    "IMPORTED_LOCATION" "${binary_dir}/libgtest.a"
-    "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}"
+# ExternalProject_Get_Property(gtest source_dir binary_dir)
+# set_target_properties(libgtest PROPERTIES
+#     "IMPORTED_LOCATION" "${binary_dir}/libgtest.a"
+#     "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}"
 #    "INTERFACE_INCLUDE_DIRECTORIES" "${source_dir}/include"
-)
+# )
 # I couldn't make it work with INTERFACE_INCLUDE_DIRECTORIES
 include_directories("${source_dir}/include")
 
@@ -42,7 +42,8 @@ set(SOURCE_FILES
     src/csv_utils.cpp
     src/opencl_utils.cpp
     src/mmio.cpp
-    src/sparse_matrix.cpp)
+    src/sparse_matrix.cpp
+    src/kernel.cpp)
 
 add_library (Executor ${SOURCE_FILES})
 
@@ -72,5 +73,5 @@ add_app(srad2)
 add_app(acoustic3D)
 add_app(spmv)
 
-enable_testing()
-add_subdirectory(test)
+# enable_testing()
+# add_subdirectory(test)

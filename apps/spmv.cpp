@@ -19,6 +19,7 @@
 #include <opencl_utils.h>
 
 // [local includes]
+#include "kernel.h"
 #include "options.h"
 #include "run3D.h"
 #include "sparse_matrix.hpp"
@@ -36,7 +37,13 @@ int main(int argc, char *argv[]) {
       {'i', "iterations",
        "Execute each kernel 'iterations' times (default 10).", 10});
 
-  auto opt_file = op.addOption<std::string>({'f', "file", "Input file"});
+  //   auto opt_input_file = op.addOption<std::string>({'f', "file", "Input
+  //   file"});
+
+  auto opt_matrix_file =
+      op.addOption<std::string>({'m', "matrix", "Input matrix"});
+  auto opt_kernel_file =
+      op.addOption<std::string>({'k', "kernel", "Input kernel"});
 
   auto opt_binary = op.addOption<bool>(
       {'b', "binary",
@@ -61,35 +68,16 @@ int main(int argc, char *argv[]) {
 
   using namespace std;
 
-  const std::string filename = opt_file->get();
+  const std::string matrix_filename = opt_matrix_file->get();
+  const std::string kernel_filename = opt_kernel_file->get();
 
-  std::cout << "filename " << filename << std::endl;
+  std::cout << "matrix_filename " << matrix_filename << std::endl;
+  std::cout << "kernel_filename " << kernel_filename << std::endl;
 
-  SparseMatrix matrix(filename);
+  SparseMatrix matrix(matrix_filename);
+  Kernel kernel(kernel_filename);
 
   auto ellmat = matrix.asELLPACK<double>();
-
-  for (auto row : ellmat) {
-    std::cout << "[";
-    for (auto elem : row) {
-      std::cout << "(" << elem.first << "," << elem.second << ")"
-                << ",";
-    }
-    std::cout << "]" << std::endl;
-  }
-
-  auto soa_ellmat = matrix.asPaddedSOAELLPACK<int>(0, 5);
-
-  std::cout << "soa_ellmat, first row length: " << soa_ellmat.first[0].size()
-            << std::endl;
-  std::cout << "Indices: " << std::endl;
-  for (auto row : soa_ellmat.first) {
-    std::cout << "[";
-    for (auto elem : row) {
-      std::cout << elem << ",";
-    }
-    std::cout << "]" << std::endl;
-  }
 
   //   std::cout << "Values: " << std::endl;
   //   for (auto row : soa_ellmat.second) {
@@ -100,27 +88,9 @@ int main(int argc, char *argv[]) {
   //     std::cout << "]" << std::endl;
   //   }
 
-  // size string used for all .csv files,
-  // e.g., exec_[size_string].csv
-  //   auto size_string = to_string(M) + "_" + to_string(N) + "_" +
-  //   to_string(O);
-
-  //   File::set_size(size_string);
-
   OpenCL::timeout = opt_timeout->get();
 
-  //   // temporary files
-  //   std::string gold_file = "/tmp/lift_acoustic_gold_" + size_string;
-  //   std::string roomtminus1_file = "/tmp/lift_acoustic_roomtminus1" +
-  //   size_string;
-  //   std::string roomt_file = "/tmp/lift_acoustic_roomt" + size_string;
-
-  //   if (opt_clean->get()) {
-  //     std::cout << "Cleaning..." << std::endl;
-  //     for (const auto &file : {gold_file, roomtminus1_file, roomt_file})
-  //       std::remove(file.data());
-  //     return 0;
-  //   }
+  // temporary files
 
   //   // === Loading exec CSV file ===
   //   std::vector<std::shared_ptr<Run>> all_run = Csv::init(
