@@ -99,9 +99,9 @@ OpenCLSparseMatrix<T> Kernel<T>::specialiseMatrix(SparseMatrix<T> matrix,
     rawmat.second.resize(new_height, values);
   }
 
-  return OpenCLSparseMatrix<T>((int)rawmat.first.size(),
-                               (int)rawmat.first[0].size(),
-                               flatten(rawmat.first), flatten(rawmat.second));
+  return OpenCLSparseMatrix<T>(
+      (int)rawmat.first.size(), (int)rawmat.first[0].size(), kprops.chunkSize,
+      kprops.splitSize, flatten(rawmat.first), flatten(rawmat.second));
 }
 
 // KernelProperties

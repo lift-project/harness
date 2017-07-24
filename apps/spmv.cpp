@@ -89,8 +89,12 @@ int main(int argc, char *argv[]) {
   // specialise the matrix for the kernel given
   auto cl_matrix = kernel.specialiseMatrix(matrix, 0.0f);
 
-  std::vector<int> size_args{cl_matrix.rows, cl_matrix.rowlen,
-                             std::max(cl_matrix.rows, cl_matrix.rowlen)};
+  // extract size variables from it
+  int v_Height_cl = cl_matrix.getCLVHeight();
+  int v_Width_cl = cl_matrix.getCLVWidth();
+  int v_Length_cl = cl_matrix.rows;
+
+  std::vector<int> size_args{v_Height_cl, v_Width_cl, v_Length_cl};
 
   //   // === Loading exec CSV file ===
   std::vector<std::shared_ptr<Run>> all_run = Csv::init(
@@ -109,6 +113,6 @@ int main(int argc, char *argv[]) {
 
   //   // run the harness
 
-  run_harness(all_run, M, N, O, roomtminus1_file, roomt_file, gold_file,
-              opt_force->get(), opt_threaded->get(), opt_binary->get());
+  //   run_harness(all_run, M, N, O, roomtminus1_file, roomt_file, gold_file,
+  //               opt_force->get(), opt_threaded->get(), opt_binary->get());
 }

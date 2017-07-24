@@ -31,74 +31,76 @@ void set_kernel_args(const shared_ptr<Run> run,
   run->getKernel().setArg(i++, static_cast<int>(O));
 }
 
-void compute_gold(const size_t M, const size_t N, const size_t O,
-                  Matrix<float> &roomtminus1, Matrix<float> &roomt,
-                  Matrix<float> &gold, const std::string &roomtminus1_file,
-                  const std::string &roomt_file, const std::string &gold_file) {
+// void compute_gold(const size_t M, const size_t N, const size_t O,
+//                   Matrix<float> &roomtminus1, Matrix<float> &roomt,
+//                   Matrix<float> &gold, const std::string &roomtminus1_file,
+//                   const std::string &roomt_file, const std::string
+//                   &gold_file) {
 
-  File::load_input_debug(
-      gold,
-      "/home/bastian/development/exploration/datasets/acoustic/output.txt");
-  File::load_input_debug(roomtminus1, "/home/bastian/development/exploration/"
-                                      "datasets/acoustic/roomtminus1.txt");
-  File::load_input_debug(
-      roomt,
-      "/home/bastian/development/exploration/datasets/acoustic/roomt.txt");
+//   File::load_input_debug(
+//       gold,
+//       "/home/bastian/development/exploration/datasets/acoustic/output.txt");
+//   File::load_input_debug(roomtminus1,
+//   "/home/bastian/development/exploration/"
+//                                       "datasets/acoustic/roomtminus1.txt");
+//   File::load_input_debug(
+//       roomt,
+//       "/home/bastian/development/exploration/datasets/acoustic/roomt.txt");
 
-  File::save_input(gold, gold_file);
-  File::save_input(roomtminus1, roomtminus1_file);
-  File::save_input(roomt, roomt_file);
-}
+//   File::save_input(gold, gold_file);
+//   File::save_input(roomtminus1, roomtminus1_file);
+//   File::save_input(roomt, roomt_file);
+// }
 
 // void run_harness()
 
-void run_harness(std::vector<std::shared_ptr<Run>> &all_run, const size_t M,
-                 const size_t N, const size_t O,
-                 const std::string &roomtminus1_file,
-                 const std::string &roomt_file, const std::string &gold_file,
-                 const bool force, const bool threaded, const bool binary) {
+void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
+                 const size_t v_Height_cl, const size_t v_Width_cl,
+                 const size_t v_Length_cl, const OpenCLSparseMatrix matrix,
+                 const Kernel kernel, const bool threaded, const bool binary) {
 
   if (binary)
     std::cout << "Using precompiled binaries" << std::endl;
 
   // M rows, N columns
-  Matrix<float> roomtminus1(M * N * O);
-  Matrix<float> roomt(M * N * O);
-  Matrix<float> gold(M * N * O);
+  // Matrix<float> roomtminus1(M * N * O);
+  // Matrix<float> roomt(M * N * O);
+  // Matrix<float> gold(M * N * O);
 
-  // use existing grid, weights and gold or init them
-  if (File::is_file_exist(gold_file) && File::is_file_exist(roomtminus1_file) &&
-      File::is_file_exist(roomt_file)) {
-    std::cout << "use existing grid, weights and gold" << std::endl;
-    File::load_input(gold, gold_file);
-    File::load_input(roomtminus1, roomtminus1_file);
-    File::load_input(roomt, roomt_file);
-  } else {
-    std::cout << "load files and save as binary" << std::endl;
-    compute_gold(M, N, O, roomtminus1, roomt, gold, roomtminus1_file,
-                 roomt_file, gold_file);
-  }
+  // // use existing grid, weights and gold or init them
+  // if (File::is_file_exist(gold_file) && File::is_file_exist(roomtminus1_file)
+  // &&
+  //     File::is_file_exist(roomt_file)) {
+  //   std::cout << "use existing grid, weights and gold" << std::endl;
+  //   File::load_input(gold, gold_file);
+  //   File::load_input(roomtminus1, roomtminus1_file);
+  //   File::load_input(roomt, roomt_file);
+  // } else {
+  //   std::cout << "load files and save as binary" << std::endl;
+  //   compute_gold(M, N, O, roomtminus1, roomt, gold, roomtminus1_file,
+  //                roomt_file, gold_file);
+  // }
 
   // validation function
-  auto validate = [&](const std::vector<float> &output) {
-    bool correct = true;
-    if (gold.size() != output.size())
-      return false;
-    for (unsigned i = 0; i < gold.size(); ++i) {
-      auto x = gold[i];
-      // auto x = roomtminus1[i];
-      auto y = output[i];
+  // auto validate = [&](const std::vector<float> &output) {
+  //   bool correct = true;
+  //   if (gold.size() != output.size())
+  //     return false;
+  //   for (unsigned i = 0; i < gold.size(); ++i) {
+  //     auto x = gold[i];
+  //     // auto x = roomtminus1[i];
+  //     auto y = output[i];
 
-      // possibly lots of floating point weirdness going on
-      if (abs(x - y) > 0.01f * max(abs(x), abs(y))) {
-        cerr << "at " << i << ": " << x << "=/=" << y << std::endl;
-        // return false;
-        return true;
-        // correct = false;
-      }
-    }
-    return correct;
-  };
+  //     // possibly lots of floating point weirdness going on
+  //     if (abs(x - y) > 0.01f * max(abs(x), abs(y))) {
+  //       cerr << "at " << i << ": " << x << "=/=" << y << std::endl;
+  //       // return false;
+  //       return true;
+  //       // correct = false;
+  //     }
+  //   }
+  //   return correct;
+  // };
 
   // Allocating buffers
   const size_t buf_size = roomtminus1.size() * sizeof(float);
