@@ -18,13 +18,19 @@ public:
   // Constructor
   KernelProperties();
   KernelProperties(std::string kname);
+  KernelProperties(std::string outerMap, std::string innerMap,
+                   std::string innerMap2, int splitSize, int chunkSize);
+  std::string outerMap;
+  std::string innerMap;
+  std::string innerMap2;
+  int splitSize;
+  int chunkSize;
 
 private:
   std::string argcache;
 };
 
-// template <typename T>
-class Kernel {
+template <typename T> class Kernel {
 public:
   // Constructors
   Kernel(std::string filename);
@@ -41,7 +47,7 @@ public:
   // Specialiser for a matrix - makes more sense here than in the matrix,
   // as it's kernel, not matrix dependent
 
-  // OpenCLSparseMatrix<T> specialiseMatrix(SparseMatrix matrix);
+  OpenCLSparseMatrix<T> specialiseMatrix(SparseMatrix<T> matrix, T zero);
 
 private:
   std::string source;

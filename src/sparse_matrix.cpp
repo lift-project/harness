@@ -2,19 +2,26 @@
 
 // CONSTRUCTORS
 
-SparseMatrix::SparseMatrix(std::string filename) {
+template class SparseMatrix<float>;
+template class SparseMatrix<int>;
+template class SparseMatrix<bool>;
+template class SparseMatrix<double>;
+
+template <typename T> SparseMatrix<T>::SparseMatrix(std::string filename) {
   // Constructor from file
   load_from_file(filename);
 }
 
-SparseMatrix::SparseMatrix(float lo, float hi, int length, int elements) {
-  // Constructor as a new sparse vector
-  from_random_vector(lo, hi, length, elements);
-}
+// template <typename T>
+// SparseMatrix<T>::SparseMatrix(float lo, float hi, int length, int elements) {
+//   // Constructor as a new sparse vector
+//   from_random_vector(lo, hi, length, elements);
+// }
 
 // INITIALISERS
 
-void SparseMatrix::load_from_file(std::string filename) {
+template <typename T>
+void SparseMatrix<T>::load_from_file(std::string filename) {
   int ret_code;
   MM_typecode matcode;
   FILE *f;
@@ -59,17 +66,7 @@ void SparseMatrix::load_from_file(std::string filename) {
       // adjust from 1 based to 0 based
       I--;
       J--;
-      nz_entries.push_back(std::make_tuple(I, J, val));
-      if (i == 0) {
-        ma_elem = mi_elem = val;
-      } else {
-        if (val > ma_elem) {
-          ma_elem = val;
-        }
-        if (val < mi_elem) {
-          mi_elem = val;
-        }
-      }
+      nz_entries.push_back(std::make_tuple(I, J, static_cast<T>(val)));
       // printf("Entry: %lg at (%d, %d)\n", val, I, J);
     }
   } else {
@@ -79,67 +76,69 @@ void SparseMatrix::load_from_file(std::string filename) {
   }
 }
 
-void SparseMatrix::from_random_vector(float lo, float hi, int length,
-                                      int elements) {
-  std::srand(static_cast<unsigned>(time(0)));
-  auto makeRandom = [](float _lo, float _hi) {
-    return _lo +
-           static_cast<float>(std::rand()) /
-               (static_cast<float>(RAND_MAX / (_hi - _lo)));
-  };
-  rows = 1;
-  cols = length;
-  if (elements > length) {
-    std::cerr << "Error: cannot intialise vector with more elements than length"
-              << std::endl;
-    exit(-2);
-  } else {
-    // initialise our temporary sparse vector
-    std::vector<std::tuple<int, int, double>> elems(elements);
-    if (elements == length) {
-      std::clog << "Size/elements match - initialising pseudo-dense vector"
-                << std::endl;
-      // Initialise a dense "sparse" vector
-      for (unsigned int i = 0; i < elems.size(); i++) {
-        std::get<0>(elems[i]) = i;
-        std::get<1>(elems[i]) = 0;
-        std::get<2>(elems[i]) = makeRandom(lo, hi);
-      }
-    } else {
-      std::clog
-          << "Numbers don't match, initialising using fisher-yates shuffle"
-          << std::endl;
-      // Initialise a vector of <elements> elements
-      std::vector<std::tuple<int, int, double>> elems(elements);
-      // Initialise a dense vector of indicies of len <length>
-      std::vector<int> indicies(length);
-      for (unsigned int i = 0; i < indicies.size(); i++) {
-        indicies[i] = i;
-      }
-      // Shuffle it
-      int cIndexCounter = indicies.size();
-      for (unsigned int i = 0; i < indicies.size(); i++, cIndexCounter--) {
-        int randIndex = std::rand() % cIndexCounter;
-        if (indicies[i] != indicies[randIndex]) {
-          std::swap(indicies[i], indicies[cIndexCounter]);
-        }
-      }
-      std::sort(indicies.begin(), indicies.begin() + elements);
-      // Take the first <elements> indicies
-      for (int i = 0; i < elements; i++) {
-        std::get<0>(elems[i]) = indicies[i];
-        std::get<1>(elems[i]) = 0;
-        std::get<2>(elems[i]) = makeRandom(lo, hi);
-      }
-    }
-    nz_entries = elems;
-  }
-}
+// template <typename T>
+// void SparseMatrix<T>::from_random_vector(float lo, float hi, int length,
+//                                          int elements) {
+//   std::srand(static_cast<unsigned>(time(0)));
+//   auto makeRandom = [](float _lo, float _hi) {
+//     return _lo +
+//            static_cast<float>(std::rand()) /
+//                (static_cast<float>(RAND_MAX / (_hi - _lo)));
+//   };
+//   rows = 1;
+//   cols = length;
+//   if (elements > length) {
+//     std::cerr << "Error: cannot intialise vector with more elements than
+//     length"
+//               << std::endl;
+//     exit(-2);
+//   } else {
+//     // initialise our temporary sparse vector
+//     std::vector<std::tuple<int, int, double>> elems(elements);
+//     if (elements == length) {
+//       std::clog << "Size/elements match - initialising pseudo-dense vector"
+//                 << std::endl;
+//       // Initialise a dense "sparse" vector
+//       for (unsigned int i = 0; i < elems.size(); i++) {
+//         std::get<0>(elems[i]) = i;
+//         std::get<1>(elems[i]) = 0;
+//         std::get<2>(elems[i]) = makeRandom(lo, hi);
+//       }
+//     } else {
+//       std::clog
+//           << "Numbers don't match, initialising using fisher-yates shuffle"
+//           << std::endl;
+//       // Initialise a vector of <elements> elements
+//       std::vector<std::tuple<int, int, double>> elems(elements);
+//       // Initialise a dense vector of indicies of len <length>
+//       std::vector<int> indicies(length);
+//       for (unsigned int i = 0; i < indicies.size(); i++) {
+//         indicies[i] = i;
+//       }
+//       // Shuffle it
+//       int cIndexCounter = indicies.size();
+//       for (unsigned int i = 0; i < indicies.size(); i++, cIndexCounter--) {
+//         int randIndex = std::rand() % cIndexCounter;
+//         if (indicies[i] != indicies[randIndex]) {
+//           std::swap(indicies[i], indicies[cIndexCounter]);
+//         }
+//       }
+//       std::sort(indicies.begin(), indicies.begin() + elements);
+//       // Take the first <elements> indicies
+//       for (int i = 0; i < elements; i++) {
+//         std::get<0>(elems[i]) = indicies[i];
+//         std::get<1>(elems[i]) = 0;
+//         std::get<2>(elems[i]) = makeRandom(lo, hi);
+//       }
+//     }
+//     nz_entries = elems;
+//   }
+// }
 
 // READERS
 
 template <typename T>
-SparseMatrix::ellpack_matrix<T> SparseMatrix::asELLPACK(void) {
+SparseMatrix<T>::ellpack_matrix<T> SparseMatrix<T>::asELLPACK(void) {
   // allocate a sparse matrix of the right height
   ellpack_matrix<T> ellmatrix(height(), ellpack_row<T>(0));
   // iterate over the raw entries, and push them into the correct rows
@@ -147,7 +146,7 @@ SparseMatrix::ellpack_matrix<T> SparseMatrix::asELLPACK(void) {
     // y is entry._1 (right?)
     int x = std::get<0>(entry);
     int y = std::get<1>(entry);
-    int val = static_cast<T>(std::get<2>(entry));
+    int val = std::get<2>(entry);
     std::pair<int, T> r_entry(x, val);
     ellmatrix[y].push_back(r_entry);
   }
@@ -162,19 +161,22 @@ SparseMatrix::ellpack_matrix<T> SparseMatrix::asELLPACK(void) {
   return ellmatrix;
 }
 
-template SparseMatrix::ellpack_matrix<double> SparseMatrix::asELLPACK(void);
-template SparseMatrix::ellpack_matrix<float> SparseMatrix::asELLPACK(void);
-template SparseMatrix::ellpack_matrix<int> SparseMatrix::asELLPACK(void);
+// template SparseMatrix<double>::ellpack_matrix<double>
+// SparseMatrix<double>::asELLPACK(void);
+// template SparseMatrix<float>::ellpack_matrix<float>
+// SparseMatrix<float>::asELLPACK(void);
+// template SparseMatrix<int>::ellpack_matrix<int>
+// SparseMatrix<int>::asELLPACK(void);
 
 template <typename T>
-SparseMatrix::soa_ellpack_matrix<T> SparseMatrix::asSOAELLPACK(void) {
+SparseMatrix<T>::soa_ellpack_matrix<T> SparseMatrix<T>::asSOAELLPACK(void) {
   // allocate a sparse matrix of the right height
   SparseMatrix::soa_ellpack_matrix<T> soaellmatrix(
       std::vector<std::vector<int>>(height(), std::vector<int>(0)),
       std::vector<std::vector<T>>(height(), std::vector<T>(0)));
 
   // build a zipped (AOS) ellpack matrix, and then unzip it
-  auto aosellmatrix = asELLPACK<T>();
+  auto aosellmatrix = asELLPACK();
 
   // traverse the zipped matrix and push it into our unzipped form
   int row_idx = 0;
@@ -188,19 +190,20 @@ SparseMatrix::soa_ellpack_matrix<T> SparseMatrix::asSOAELLPACK(void) {
   return soaellmatrix;
 }
 
-template SparseMatrix::soa_ellpack_matrix<double>
-SparseMatrix::asSOAELLPACK(void);
+// template SparseMatrix::soa_ellpack_matrix<double>
+// SparseMatrix::asSOAELLPACK(void);
 
-template SparseMatrix::soa_ellpack_matrix<float>
-SparseMatrix::asSOAELLPACK(void);
+// template SparseMatrix::soa_ellpack_matrix<float>
+// SparseMatrix::asSOAELLPACK(void);
 
-template SparseMatrix::soa_ellpack_matrix<int> SparseMatrix::asSOAELLPACK(void);
+// template SparseMatrix::soa_ellpack_matrix<int>
+// SparseMatrix::asSOAELLPACK(void);
 
 template <typename T>
-SparseMatrix::soa_ellpack_matrix<T>
-SparseMatrix::asPaddedSOAELLPACK(T zero, int modulo) {
+SparseMatrix<T>::soa_ellpack_matrix<T>
+SparseMatrix<T>::asPaddedSOAELLPACK(T zero, int modulo) {
   // get an unpadded soaell matrix
-  auto soaellmatrix = asSOAELLPACK<T>();
+  auto soaellmatrix = asSOAELLPACK();
   // get our padlength - it's the maximum row length
   auto max_length = getMaxRowEntries();
   // and pad that out
@@ -218,14 +221,14 @@ SparseMatrix::asPaddedSOAELLPACK(T zero, int modulo) {
   return soaellmatrix;
 }
 
-template SparseMatrix::soa_ellpack_matrix<double>
-SparseMatrix::asPaddedSOAELLPACK(double, int);
+// template SparseMatrix::soa_ellpack_matrix<double>
+// SparseMatrix::asPaddedSOAELLPACK(double, int);
 
-template SparseMatrix::soa_ellpack_matrix<float>
-SparseMatrix::asPaddedSOAELLPACK(float, int);
+// template SparseMatrix::soa_ellpack_matrix<float>
+// SparseMatrix::asPaddedSOAELLPACK(float, int);
 
-template SparseMatrix::soa_ellpack_matrix<int>
-SparseMatrix::asPaddedSOAELLPACK(int, int);
+// template SparseMatrix::soa_ellpack_matrix<int>
+// SparseMatrix::asPaddedSOAELLPACK(int, int);
 
 // ellpack_matrix<float> SparseMatrix::asFloatELLPACK() {
 //     return SparseMatrix::asELLPACK<float>();
@@ -239,21 +242,18 @@ SparseMatrix::asPaddedSOAELLPACK(int, int);
 //     return SparseMatrix::asELLPACK<int>();
 // }
 
-int SparseMatrix::width() { return cols; }
+template <typename T> int SparseMatrix<T>::width() { return cols; }
 
-int SparseMatrix::height() { return rows; }
+template <typename T> int SparseMatrix<T>::height() { return rows; }
 
-int SparseMatrix::nonZeros() { return nonz; }
+template <typename T> int SparseMatrix<T>::nonZeros() { return nonz; }
 
-double SparseMatrix::maxElement() { return ma_elem; }
-
-double SparseMatrix::minElement() { return mi_elem; }
-
-std::vector<std::tuple<int, int, double>> SparseMatrix::getEntries() {
+template <typename T>
+std::vector<std::tuple<int, int, T>> SparseMatrix<T>::getEntries() {
   return nz_entries;
 }
 
-// std::vector<Apart_Tuple> SparseMatrix::asSparseMatrix()
+// std::vector<Apart_Tuple> SparseMatrix<T>::asSparseMatrix()
 // {
 //     // handy holder for the total number of non zero entries
 //     int entries = nz_entries.size();
@@ -325,7 +325,7 @@ std::vector<std::tuple<int, int, double>> SparseMatrix::getEntries() {
 //     return *std::max_element(lens.begin(), lens.end());
 // }
 
-std::vector<int> SparseMatrix::getRowLengths() {
+template <typename T> std::vector<int> SparseMatrix<T>::getRowLengths() {
   if (!(row_lengths.size() > 0)) {
     std::cerr << "Building row entries for first time." << std::endl;
     std::vector<int> entries(rows, 0);
@@ -341,7 +341,7 @@ std::vector<int> SparseMatrix::getRowLengths() {
   return row_lengths;
 }
 
-int SparseMatrix::getMaxRowEntries() {
+template <typename T> int SparseMatrix<T>::getMaxRowEntries() {
   if (max_row_entries == -1) {
     auto entries = getRowLengths();
     max_row_entries = *std::max_element(entries.begin(), entries.end());
@@ -349,7 +349,7 @@ int SparseMatrix::getMaxRowEntries() {
   return max_row_entries;
 }
 
-int SparseMatrix::getMinRowEntries() {
+template <typename T> int SparseMatrix<T>::getMinRowEntries() {
   if (min_row_entries == -1) {
     auto entries = getRowLengths();
     min_row_entries = *std::min_element(entries.begin(), entries.end());
@@ -357,7 +357,7 @@ int SparseMatrix::getMinRowEntries() {
   return min_row_entries;
 }
 
-int SparseMatrix::getMeanRowEntries() {
+template <typename T> int SparseMatrix<T>::getMeanRowEntries() {
   if (mean_row_entries == -1) {
     auto entries = getRowLengths();
     mean_row_entries =

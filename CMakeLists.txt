@@ -42,8 +42,9 @@ set(SOURCE_FILES
     src/csv_utils.cpp
     src/opencl_utils.cpp
     src/mmio.cpp
+    src/kernel.cpp
     src/sparse_matrix.cpp
-    src/kernel.cpp)
+    )
 
 add_library (Executor ${SOURCE_FILES})
 

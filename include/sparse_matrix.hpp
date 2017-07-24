@@ -22,35 +22,32 @@ template <typename T> class OpenCLSparseMatrix {
 public:
   OpenCLSparseMatrix(int r, int l, std::vector<int> ixs, std::vector<T> vals)
       : rows(r), rowlen(l), indices(ixs), values(vals){};
+  // OpenCLSparseMatrix();
   const int rows;
   const int rowlen;
   const std::vector<int> indices;
   const std::vector<T> values;
 };
 
-class SparseMatrix {
+template <typename EType> class SparseMatrix {
 public:
   // Constructors
   SparseMatrix(std::string filename);
-  SparseMatrix(float lo, float hi, int length, int elements);
+  // SparseMatrix(float lo, float hi, int length, int elements);
 
   // readers
-  template <typename EType>
-  using ellpack_row = std::vector<std::pair<int, EType>>;
+  template <typename T> using ellpack_row = std::vector<std::pair<int, T>>;
+  template <typename T> using ellpack_matrix = std::vector<ellpack_row<T>>;
 
-  template <typename EType>
-  using ellpack_matrix = std::vector<ellpack_row<EType>>;
-
-  template <typename T> ellpack_matrix<T> asELLPACK(void);
-
-  template <typename EType>
-  using soa_ellpack_matrix =
-      std::pair<std::vector<std::vector<int>>, std::vector<std::vector<EType>>>;
-
-  template <typename T> soa_ellpack_matrix<T> asSOAELLPACK();
+  ellpack_matrix<EType> asELLPACK(void);
 
   template <typename T>
-  soa_ellpack_matrix<T> asPaddedSOAELLPACK(T zero, int modulo = 1);
+  using soa_ellpack_matrix =
+      std::pair<std::vector<std::vector<int>>, std::vector<std::vector<T>>>;
+
+  soa_ellpack_matrix<EType> asSOAELLPACK();
+
+  soa_ellpack_matrix<EType> asPaddedSOAELLPACK(EType zero, int modulo = 1);
 
   // template ellpack_matrix<float> asFloatELLPACK();
   // ellpack_matrix<double> asDoubleELLPACK();
@@ -61,10 +58,7 @@ public:
   int height();
   int nonZeros();
 
-  double maxElement();
-  double minElement();
-
-  std::vector<std::tuple<int, int, double>> getEntries();
+  std::vector<std::tuple<int, int, EType>> getEntries();
   std::vector<int> getRowLengths(void);
   int getMaxRowEntries();
   int getMinRowEntries();
@@ -83,15 +77,14 @@ public:
 private:
   // private initialisers
   void load_from_file(std::string filename);
-  void from_random_vector(float lo, float hi, int length, int elements);
+  // void from_random_vector(float lo, float hi, int length, int elements);
 
   // tuples are: x, y, value
-  std::vector<std::tuple<int, int, double>> nz_entries;
+  std::vector<std::tuple<int, int, EType>> nz_entries;
   int rows;
   int cols;
   int nonz;
-  double ma_elem;
-  double mi_elem;
+
   std::string filename;
   std::vector<int> row_lengths;
   int max_row_entries = -1;

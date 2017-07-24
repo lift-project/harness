@@ -21,9 +21,10 @@
 // [local includes]
 #include "kernel.h"
 #include "options.h"
-#include "run3D.h"
+#include "run.h"
 #include "sparse_matrix.hpp"
 #include "spmv_harness.h"
+#include "spmvrun.h"
 
 int main(int argc, char *argv[]) {
   OptParser op(
@@ -76,29 +77,38 @@ int main(int argc, char *argv[]) {
   std::cout << "matrix_filename " << matrix_filename << std::endl;
   std::cout << "kernel_filename " << kernel_filename << std::endl;
 
-  SparseMatrix matrix(matrix_filename);
-  Kernel kernel(kernel_filename);
+  SparseMatrix<float> matrix(matrix_filename);
+  Kernel<float> kernel(kernel_filename);
 
-  auto ellmat = matrix.asELLPACK<double>();
+  if (matrix.height() != matrix.width()) {
+    std::cout << "Matrix is not square. Failing computation." << std::endl;
+    std::cerr << "Matrix is not square. Failing computation." << std::endl;
+    std::exit(2);
+  }
 
   // specialise the matrix for the kernel given
+  auto cl_matrix = kernel.specialiseMatrix(matrix, 0.0f);
 
-  OpenCL::timeout = opt_timeout->get();
-
-  // temporary files
+  std::vector<int> size_args{cl_matrix.rows, cl_matrix.rowlen,
+                             std::max(cl_matrix.rows, cl_matrix.rowlen)};
 
   //   // === Loading exec CSV file ===
-  //   std::vector<std::shared_ptr<Run>> all_run = Csv::init(
-  //       [&](const std::vector<std::string> &values) -> std::shared_ptr<Run> {
-  //         return std::shared_ptr<Run>(new Run3D(values, M, N, O));
-  //       });
+  std::vector<std::shared_ptr<Run>> all_run = Csv::init(
+      [&](const std::vector<std::string> &values) -> std::shared_ptr<Run> {
+
+        auto run = new SPMVRun(values, size_args, kernel.getArgs().size());
+        return std::shared_ptr<Run>(run);
+
+      });
   //   if (all_run.size() == 0)
   //     return 0;
 
   //   // === OpenCL init ===
+  OpenCL::timeout = opt_timeout->get();
   OpenCL::init(opt_platform->get(), opt_device->get(), opt_iterations->get());
 
   //   // run the harness
-  //   run_harness(all_run, M, N, O, roomtminus1_file, roomt_file, gold_file,
-  //               opt_force->get(), opt_threaded->get(), opt_binary->get());
+
+  run_harness(all_run, M, N, O, roomtminus1_file, roomt_file, gold_file,
+              opt_force->get(), opt_threaded->get(), opt_binary->get());
 }
