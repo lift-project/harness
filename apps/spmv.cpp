@@ -16,7 +16,7 @@
 #include <vector>
 
 // [external includes]
-#include <opencl_utils.h>
+#include <opencl_utils2.h>
 
 // [local includes]
 #include "kernel.h"
