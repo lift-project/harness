@@ -134,11 +134,6 @@ void execute(boost::optional<function<bool(const std::vector<T> &)>> validate,
   OpenCL::executeRun<T>(*r, output_dev, output_size / sizeof(T), validate);
 };
 
-/**
- * FIXME: This is a lazy copy paste of the old main with a template switch for
- * single and double
- * precision
- */
 void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
                  const bool threaded, const bool binary) {
 
@@ -224,7 +219,7 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
   }
 }
 
-template <typename T> struct GenericRun : public Run {
+struct GenericRun : public Run {
   size_t num_args;
   vector<int> &size_arguments;
 
@@ -332,7 +327,7 @@ int main(int argc, const char *const *argv) {
 
   // === Loading CSV file ===
   auto all_run = Csv::init([&](const std::vector<std::string> &values) {
-    return std::shared_ptr<Run>(new GenericRun<float>(
+    return std::shared_ptr<Run>(new GenericRun(
         values, size_arguments, inputs.size(), local_0, local_1, local_2));
   });
 
@@ -341,7 +336,7 @@ int main(int argc, const char *const *argv) {
     exit(0);
   }
 
-  OpenCL::init(platform, device);
+  OpenCL::init(platform, device, OpenCL::iterations);
 
   run_harness(all_run, threaded, binary);
 }
