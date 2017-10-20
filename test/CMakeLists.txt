@@ -1,9 +1,5 @@
 set(TEST_SOURCES
     test_utils.cpp
-    test_matmul.cpp
-    test_gemv.cpp
-    test_nbody.cpp
-    test_mv.cpp
     test_kmeans.cpp)
 
 add_executable (test_all test_all.cpp ${TEST_SOURCES})
