@@ -51,10 +51,6 @@ endfunction()
 
 include_directories(apps)
 
-add_app(mm)
-add_app(mv)
-add_app(gemv)
-add_app(nbody)
 add_app(kmeans)
 add_app(generic)
 add_app(stencil)
