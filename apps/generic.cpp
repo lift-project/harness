@@ -297,7 +297,7 @@ int main(int argc, const char *const *argv) {
       "Timeout to avoid multiple executions")
     ("iterations,i", po::value<int>(&OpenCL::iterations)->default_value(10),
       "Number of iterations for each experiment")
-    ("local-combinations,l", po::value<bool>(&OpenCL::local_combinations)->default_value(false),
+    ("local-combinations,l", po::bool_switch(&OpenCL::local_combinations)->default_value(false),
       "Run different valid combinations of local sizes instead of letting the "
       "implementation choose if the local size is marked '?'.")
     ("l0", po::value<unsigned>(&local_0)->default_value(0),
@@ -310,7 +310,7 @@ int main(int argc, const char *const *argv) {
       "The minimum local size to use when running the experiments")
     ("b,binary", po::value<bool>(&binary)->default_value(false),
       "Load programs as binaries instead of compiling OpenCL-C source.")
-    ("threaded", po::value<bool>(&threaded),
+    ("threaded", po::value<bool>(&threaded)->default_value(true),
       "Use a separate thread for compilation and execution")
     ;
 
