@@ -77,6 +77,9 @@ do
     if [[ ! -a $DONE_FILE ]]
     then
 
+      echo "Platform: ${PLATFORM}, Device: ${DEVICE}, ${CONFIG:t}"
+      echo ${LOW_LEVEL:t}
+
       NUM_EXEC=$(($NUM_EXEC + 1))
 
       cd $LOW_LEVEL
