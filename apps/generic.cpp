@@ -4,6 +4,7 @@
 #include <condition_variable>
 #include <queue>
 #include <thread>
+#include <cstdio>
 
 #include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -185,6 +186,7 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
 
     auto execute_thread = std::thread([&] {
       std::shared_ptr<Run> r = nullptr;
+      auto first = true;
       while (!done) {
         {
           std::unique_lock<std::mutex> locker(m);
@@ -199,7 +201,25 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
             ready_queue.pop();
           }
 
+          auto hash = r->hash;
+          auto timeout_candidate_file = hash + ".timeout";
+
+          if (first) {
+            if (File::is_file_exist(timeout_candidate_file)) {
+              File::add_timeout(hash);
+              std::remove(timeout_candidate_file.c_str());
+              continue;
+            } else {
+              std::ofstream outfile(timeout_candidate_file);
+            }
+          }
+
           execute(optional_validation, input_buffers, output_dev, r);
+
+          if (first)
+            std::remove(timeout_candidate_file.c_str());
+
+          first = false;
         }
       }
     });
