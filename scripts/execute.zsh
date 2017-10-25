@@ -77,8 +77,8 @@ do
     if [[ ! -a $DONE_FILE ]]
     then
 
-      echo $CONFIG
-      echo $LOW_LEVEL
+      echo ${CONFIG:t}
+      echo ${LOW_LEVEL:t}
 
       NUM_EXEC=$(($NUM_EXEC + 1))
 
