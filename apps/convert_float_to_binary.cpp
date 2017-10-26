@@ -14,9 +14,8 @@ vector<T> read_file(const string &filename) {
   if (!in.good())
     return contents;
 
-  while (!in.eof()) {
-    T temp;
-    in >> temp;
+  T temp;
+  while (in >> temp) {
     contents.push_back(temp);
   }
 
@@ -36,6 +35,10 @@ int main(int argc, char* argv[]) {
   auto input = read_file<float>(input_filename);
 
   cout << "# of elements: " << input.size() << endl;
+
+  for (auto& i : input)
+    cout << i << " ";
+  cout << endl;
 
   File::save_input(input, output_filename);
   return 0;
