@@ -51,8 +51,8 @@ endfunction()
 
 include_directories(apps)
 
-add_executable(convert_float_to_binary apps/convert_float_to_binary.cpp)
-target_link_libraries(convert_float_to_binary Executor)
+add_executable(convert_to_binary apps/convert_to_binary.cpp)
+target_link_libraries(convert_to_binary Executor)
 
 add_app(kmeans)
 add_app(generic)

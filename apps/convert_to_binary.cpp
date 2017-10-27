@@ -30,9 +30,11 @@ void read_and_save(const string& input_filename) {
 
   cout << "# of elements: " << input.size() << endl;
 
-  for (auto& i : input)
-    cout << i << " ";
-  cout << endl;
+  if (input.size() <= 64) {
+    for (auto& i : input)
+      cout << i << " ";
+    cout << endl;
+  }
 
   File::save_input(input, output_filename);
 }
