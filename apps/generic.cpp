@@ -189,7 +189,10 @@ void execute(boost::optional<function<bool(const std::vector<T> &)>> validate,
     auto type = inputs[i].first;
 
     if (type.find("_") == string::npos)
-      r->getKernel().setArg(i, read_inputs[i].front());
+      if (binary_input)
+        r->getKernel().setArg(i, inputs[i].second, (void*) binary_inputs[i].data());
+      else
+        r->getKernel().setArg(i, read_inputs[i].front());
     else
       r->getKernel().setArg(i, input_buffers[i]);
   }
