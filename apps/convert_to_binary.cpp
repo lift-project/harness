@@ -26,7 +26,7 @@ vector<T> read_file(const string &filename) {
 template<typename T>
 void read_and_save(const string& input_filename) {
   auto output_filename = input_filename + ".binary";
-  auto input = read_file<float>(input_filename);
+  auto input = read_file<T>(input_filename);
 
   cout << "# of elements: " << input.size() << endl;
 
