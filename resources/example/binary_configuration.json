@@ -1,0 +1,10 @@
+{
+  "kernel" : "example",
+  "binary" : true,
+  "inputs" : [ {
+    "filename" : "4_float.binary",
+    "size" : 16
+  } ],
+  "output" : 16,
+  "sizes" : [ 4 ]
+}

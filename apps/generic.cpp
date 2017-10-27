@@ -51,9 +51,9 @@ void read_file_with_size(vector<T> &contents, const string &filename,
   }
 }
 
-void load_inputs_and_outputs() {
+void load_text_inputs_and_outputs() {
 
-  cout << "Loading inputs..." << endl;
+  cout << "Loading text inputs..." << endl;
 
   read_inputs.reserve(inputs.size());
 
@@ -108,6 +108,9 @@ void load_configuration(const string &filename) {
   output_size = tree.get<size_t>("output");
   output_file = tree.get_optional<string>("output_file");
 
+  auto optional_binary = tree.get_optional<bool>("binary");
+  binary_input = optional_binary ? optional_binary.get() : false;
+
   for (auto &input : tree.get_child("inputs")) {
 
     string filename = input.second.get<string>("filename");
@@ -117,23 +120,62 @@ void load_configuration(const string &filename) {
   }
 }
 
-bool validate(const std::vector<float> &kernel_output) {
+template<typename T>
+bool validate(const std::vector<T> &kernel_output) {
   // Reference output not provided, ignore validation
+
+  cout << "Kernel output:" << endl;
+  for (auto& i : kernel_output)
+    cout << +i << " ";
+  cout << endl;
+
   if (!output_file)
     return true;
 
   if (gold_output.size() != kernel_output.size())
     return false;
 
-  for (auto i = 0u; i < gold_output.size(); i++) {
-    auto x = gold_output[i];
-    auto y = kernel_output[i];
+  // for (auto i = 0u; i < gold_output.size(); i++) {
+  //   auto x = gold_output[i];
+  //   auto y = kernel_output[i];
 
-    if (abs(x - y) > 0.0001f * max(abs(x), abs(y)))
-      return false;
-  }
+  //   if (abs(x - y) > 0.0001f * max(abs(x), abs(y)))
+  //     return false;
+  // }
 
   return true;
+}
+
+vector<cl::Buffer> allocate_input_buffers() {
+  // TODO: inputs?? mix of buffers and the rest
+  // TODO: Other data types
+  vector<cl::Buffer> input_buffers;
+
+  // Allocate input buffers
+  if (binary_input) {
+    for (auto &input : binary_inputs) {
+
+      input_buffers.push_back(OpenCL::alloc(
+            CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input.size(),
+            static_cast<void *>(input.data())));
+    }
+  } else {
+
+    for (auto &input : read_inputs) {
+      input_buffers.push_back(OpenCL::alloc(
+            CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input.size() * sizeof(float),
+            static_cast<void *>(input.data())));
+    }
+  }
+
+  return input_buffers;
+}
+
+void load_inputs() {
+  if (binary_input)
+    load_binary_inputs_and_outputs();
+  else
+    load_text_inputs_and_outputs();
 }
 
 template <typename T>
@@ -157,46 +199,21 @@ void execute(boost::optional<function<bool(const std::vector<T> &)>> validate,
   OpenCL::executeRun<T>(*r, output_dev, output_size / sizeof(T), validate);
 };
 
+template<typename T>
 void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
                  const bool threaded, const bool binary) {
 
   if (binary)
     cout << "Using precompiled binaries" << endl;
 
-  if (binary_input)
-    load_binary_inputs_and_outputs();
-  else
-    load_inputs_and_outputs();
+  load_inputs();
 
-  // TODO: inputs?? mix of buffers and the rest
-  // TODO: Other data types
-  vector<cl::Buffer> input_buffers;
+  auto input_buffers = allocate_input_buffers();
 
-  // Allocate input buffers
-  if (binary_input) {
-    cout << "Binary " << binary_inputs.size() << endl;
-    for (auto &input : binary_inputs) {
+  boost::optional<function<bool(const vector<T> &)>> optional_validation;
 
-      cout << input.size() << endl;
-
-      input_buffers.push_back(OpenCL::alloc(
-            CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input.size(),
-            static_cast<void *>(input.data())));
-    }
-  } else {
-
-    for (auto &input : read_inputs) {
-      input_buffers.push_back(OpenCL::alloc(
-            CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input.size() * sizeof(float),
-            static_cast<void *>(input.data())));
-    }
-  }
-
-  boost::optional<function<bool(const vector<float> &)>> optional_validation;
-
-  // if (output_file)
-    optional_validation =
-        boost::optional<function<bool(const vector<float> &)>>(validate);
+  optional_validation =
+    boost::optional<function<bool(const vector<T> &)>>(validate<T>);
 
   // Allocating the output buffer
   cl::Buffer output_dev = OpenCL::alloc(CL_MEM_READ_WRITE, output_size);
@@ -308,8 +325,6 @@ int main(int argc, const char *const *argv) {
       "The input configuration file.")
     ("folder", po::value<string>(&input_file_folder)->default_value("."),
       "The folder where to look for input data files.")
-    ("binary-input", po::bool_switch(&binary_input)->default_value(false),
-      "Input files are in binary form.")
     ("platform,p", po::value<unsigned>(&platform)->default_value(0),
       "OpenCL platform index")
     ("device,d", po::value<unsigned>(&device)->default_value(0),
@@ -379,6 +394,13 @@ int main(int argc, const char *const *argv) {
 
   OpenCL::init(platform, device, OpenCL::iterations);
 
-  run_harness(all_run, threaded, binary);
+  if (!output_file)
+    run_harness<unsigned char>(all_run, threaded, binary);
+  else if (output_file.get().find("float") != string::npos)
+    run_harness<float>(all_run, threaded, binary);
+  else if (output_file.get().find("int") != string::npos)
+    run_harness<int>(all_run, threaded, binary);
+  else
+    throw invalid_argument("Unknown output type!");
 }
 
