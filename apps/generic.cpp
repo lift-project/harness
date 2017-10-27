@@ -70,6 +70,8 @@ void load_inputs_and_outputs() {
     auto filename = input_file_folder + "/" + output_file.get();
     read_file_with_size(gold_output, filename, output_size);
   }
+
+  cout << "Inputs loaded." << endl;
 }
 
 void load_configuration(const string &filename) {
@@ -135,6 +137,27 @@ void execute(boost::optional<function<bool(const std::vector<T> &)>> validate,
   OpenCL::executeRun<T>(*r, output_dev, output_size / sizeof(T), validate);
 };
 
+bool check_for_timeout(shared_ptr<Run>& r) {
+  auto hash = r->hash;
+  auto timeout_candidate_file = hash + ".timeout";
+  auto has_timed_out = File::is_file_exist(timeout_candidate_file);
+
+  if (has_timed_out) {
+    File::add_timeout(hash);
+    std::remove(timeout_candidate_file.c_str());
+  } else {
+    std::ofstream outfile(timeout_candidate_file);
+  }
+
+  return has_timed_out;
+}
+
+void clean_timeout(shared_ptr<Run>& r) {
+  auto hash = r->hash;
+  auto timeout_candidate_file = hash + ".timeout";
+  std::remove(timeout_candidate_file.c_str());
+}
+
 void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
                  const bool threaded, const bool binary) {
 
@@ -150,8 +173,8 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
   // Allocate input buffers
   for (auto &input : read_inputs) {
     input_buffers.push_back(OpenCL::alloc(
-        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input.size() * sizeof(float),
-        static_cast<void *>(input.data())));
+      CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input.size() * sizeof(float),
+      static_cast<void *>(input.data())));
   }
 
   boost::optional<function<bool(const vector<float> &)>> optional_validation;
@@ -174,13 +197,23 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
 
     // compilation thread
     auto compilation_thread = std::thread([&] {
+      auto first = true;
       for (auto &r : all_run) {
+
+        if (first && check_for_timeout(r))
+          continue;
+
         if (r->compile(binary)) {
           unique_lock<std::mutex> locker(m);
           ready_queue.push(r);
           ready = true;
           cv.notify_one();
         }
+
+        if (first)
+          clean_timeout(r);
+
+        first = false;
       }
     });
 
@@ -204,15 +237,8 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
           auto hash = r->hash;
           auto timeout_candidate_file = hash + ".timeout";
 
-          if (first) {
-            if (File::is_file_exist(timeout_candidate_file)) {
-              File::add_timeout(hash);
-              std::remove(timeout_candidate_file.c_str());
-              continue;
-            } else {
-              std::ofstream outfile(timeout_candidate_file);
-            }
-          }
+          if (first && check_for_timeout(r))
+            continue;
 
           execute(optional_validation, input_buffers, output_dev, r);
 

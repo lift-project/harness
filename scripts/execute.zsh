@@ -84,7 +84,7 @@ do
 
       cd $LOW_LEVEL
 
-      timeout 3m harness_generic --folder $INPUTS --file $CONFIG -p $PLATFORM -d $DEVICE
+      timeout 1m harness_generic --folder $INPUTS --file $CONFIG -p $PLATFORM -d $DEVICE
     fi
   done
 
