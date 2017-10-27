@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -20,9 +21,12 @@ using namespace std;
 
 string input_file_folder;
 
+bool binary_input;
+
 vector<int> size_arguments;
 vector<pair<string, size_t>> inputs;
 vector<vector<float>> read_inputs;
+vector<vector<char>> binary_inputs;
 
 size_t output_size;
 boost::optional<string> output_file;
@@ -38,7 +42,7 @@ void read_file_with_size(vector<T> &contents, const string &filename,
   ifstream in(filename);
 
   if (!in.good())
-    return;
+    throw invalid_argument("Missing input file");
 
   while (contents.size() < num_elements) {
     T temp;
@@ -68,6 +72,25 @@ void load_inputs_and_outputs() {
   if (output_file) {
     auto filename = input_file_folder + "/" + output_file.get();
     read_file_with_size(gold_output, filename, output_size);
+  }
+}
+
+void load_binary_inputs_and_outputs() {
+
+  cout << "Loading binary inputs..." << endl;
+
+  binary_inputs.reserve(inputs.size());
+
+  for (auto &pair : inputs) {
+
+    auto filename = input_file_folder + "/" + pair.first;
+    auto size = pair.second;
+
+    vector<char> contents(size);
+
+    File::load_input(contents, filename);
+
+    binary_inputs.push_back(move(contents));
   }
 }
 
@@ -140,22 +163,38 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
   if (binary)
     cout << "Using precompiled binaries" << endl;
 
-  load_inputs_and_outputs();
+  if (binary_input)
+    load_binary_inputs_and_outputs();
+  else
+    load_inputs_and_outputs();
 
   // TODO: inputs?? mix of buffers and the rest
   // TODO: Other data types
   vector<cl::Buffer> input_buffers;
 
   // Allocate input buffers
-  for (auto &input : read_inputs) {
-    input_buffers.push_back(OpenCL::alloc(
-        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input.size() * sizeof(float),
-        static_cast<void *>(input.data())));
+  if (binary_input) {
+    cout << "Binary " << binary_inputs.size() << endl;
+    for (auto &input : binary_inputs) {
+
+      cout << input.size() << endl;
+
+      input_buffers.push_back(OpenCL::alloc(
+            CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input.size(),
+            static_cast<void *>(input.data())));
+    }
+  } else {
+
+    for (auto &input : read_inputs) {
+      input_buffers.push_back(OpenCL::alloc(
+            CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input.size() * sizeof(float),
+            static_cast<void *>(input.data())));
+    }
   }
 
   boost::optional<function<bool(const vector<float> &)>> optional_validation;
 
-  if (output_file)
+  // if (output_file)
     optional_validation =
         boost::optional<function<bool(const vector<float> &)>>(validate);
 
@@ -269,6 +308,8 @@ int main(int argc, const char *const *argv) {
       "The input configuration file.")
     ("folder", po::value<string>(&input_file_folder)->default_value("."),
       "The folder where to look for input data files.")
+    ("binary-input", po::bool_switch(&binary_input)->default_value(false),
+      "Input files are in binary form.")
     ("platform,p", po::value<unsigned>(&platform)->default_value(0),
       "OpenCL platform index")
     ("device,d", po::value<unsigned>(&device)->default_value(0),
