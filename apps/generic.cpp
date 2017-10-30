@@ -1,3 +1,4 @@
+#include <cstring>
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -5,6 +6,7 @@
 #include <condition_variable>
 #include <queue>
 #include <thread>
+#include <type_traits>
 
 #include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -31,6 +33,7 @@ vector<vector<char>> binary_inputs;
 size_t output_size;
 boost::optional<string> output_file;
 vector<float> gold_output;
+vector<char> binary_gold_output;
 
 template <typename T>
 void read_file_with_size(vector<T> &contents, const string &filename,
@@ -92,6 +95,12 @@ void load_binary_inputs_and_outputs() {
 
     binary_inputs.push_back(move(contents));
   }
+
+  if (output_file) {
+    auto filename = input_file_folder + "/" + output_file.get();
+    binary_gold_output = vector<char>(output_size);
+    File::load_input(binary_gold_output, filename);
+  }
 }
 
 void load_configuration(const string &filename) {
@@ -119,36 +128,64 @@ void load_configuration(const string &filename) {
     inputs.push_back({filename, size});
   }
 }
+template<typename T>
+vector<T> get_output_from_binary() {
+  vector<T> correct_type(binary_gold_output.size() / sizeof(T));
+
+  memcpy(correct_type.data(), binary_gold_output.data(), binary_gold_output.size());
+
+  return correct_type;
+}
 
 template<typename T>
-bool validate(const std::vector<T> &kernel_output) {
-  // Reference output not provided, ignore validation
+vector<T> get_output() {
 
-  cout << "Kernel output:" << endl;
-  for (auto& i : kernel_output)
-    cout << +i << " ";
-  cout << endl;
+  if (!binary_input && output_file)
+    throw invalid_argument("Only float non binary outputs are allowed");
 
-  if (!output_file)
+  return get_output_from_binary<T>();
+}
+
+template<>
+vector<float> get_output() {
+  if (binary_input)
+    return get_output_from_binary<float>();
+  else
+    return gold_output;
+}
+
+template<typename T>
+bool compare_values(typename enable_if<is_floating_point<T>::value, T>::type x, T y) {
+  if (abs(x - y) > 0.001 * max(abs(x), abs(y)))
+    return false;
+  else
     return true;
+}
 
-  if (gold_output.size() != kernel_output.size())
+template<typename T>
+bool compare_values(typename enable_if<is_integral<T>::value, T>::type x, T y) {
+  return x == y;
+}
+
+template<typename T>
+bool validate(const vector<T> &kernel_output, const vector<T>& expected_output) {
+
+  if (expected_output.size() != kernel_output.size())
     return false;
 
-  // for (auto i = 0u; i < gold_output.size(); i++) {
-  //   auto x = gold_output[i];
-  //   auto y = kernel_output[i];
+  for (auto i = 0u; i < expected_output.size(); i++) {
+    auto x = gold_output[i];
+    auto y = kernel_output[i];
 
-  //   if (abs(x - y) > 0.0001f * max(abs(x), abs(y)))
-  //     return false;
-  // }
+    if (!compare_values(x,y))
+      return false;
+  }
 
   return true;
 }
 
 vector<cl::Buffer> allocate_input_buffers() {
-  // TODO: inputs?? mix of buffers and the rest
-  // TODO: Other data types
+
   vector<cl::Buffer> input_buffers;
 
   // Allocate input buffers
@@ -160,7 +197,8 @@ vector<cl::Buffer> allocate_input_buffers() {
             static_cast<void *>(input.data())));
     }
   } else {
-
+  // TODO: inputs?? mix of buffers and the rest
+  // TODO: Other data types
     for (auto &input : read_inputs) {
       input_buffers.push_back(OpenCL::alloc(
             CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input.size() * sizeof(float),
@@ -212,11 +250,17 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
   load_inputs();
 
   auto input_buffers = allocate_input_buffers();
+  auto expected_output = get_output<T>();
 
   boost::optional<function<bool(const vector<T> &)>> optional_validation;
 
-  optional_validation =
-    boost::optional<function<bool(const vector<T> &)>>(validate<T>);
+  auto validation_function = [&expected_output] (const vector<T>& kernel_output) {
+    return validate(kernel_output, expected_output);
+  };
+
+  if (output_file)
+    optional_validation =
+      boost::optional<function<bool(const vector<T> &)>>(validation_function);
 
   // Allocating the output buffer
   cl::Buffer output_dev = OpenCL::alloc(CL_MEM_READ_WRITE, output_size);
@@ -398,7 +442,7 @@ int main(int argc, const char *const *argv) {
   OpenCL::init(platform, device, OpenCL::iterations);
 
   if (!output_file)
-    run_harness<unsigned char>(all_run, threaded, binary);
+    run_harness<char>(all_run, threaded, binary);
   else if (output_file.get().find("float") != string::npos)
     run_harness<float>(all_run, threaded, binary);
   else if (output_file.get().find("int") != string::npos)
