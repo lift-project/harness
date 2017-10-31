@@ -31,8 +31,6 @@ init(std::function<std::shared_ptr<Run>(const std::vector<std::string> &)>
       }), end(all_run));
   std::cout << "done" << std::endl;
 
-  std::random_shuffle(std::begin(all_run), std::end(all_run));
-
   return all_run;
 }
 

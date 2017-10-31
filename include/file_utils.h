@@ -20,6 +20,7 @@ class File {
   static std::string timing_filename;
   static std::string exec_filename;
   static std::string compileerror_filename;
+  static std::string timeout_filename;
 
   static std::string &replace(std::string &subj, std::string old,
                               std::string neu) {
@@ -47,6 +48,7 @@ public:
     replace(timing_filename, pattern, size_str);
     replace(exec_filename, pattern, size_str);
     replace(compileerror_filename, pattern, size_str);
+    replace(timeout_filename, pattern, size_str);
   }
 
   static void file_append(const std::string &filename,
@@ -71,6 +73,10 @@ public:
 
   static void add_incompatible(const std::string &hash) {
     file_append(incompatible_filename, hash);
+  }
+
+  static void add_timeout(const std::string &hash) {
+    file_append(timeout_filename, hash);
   }
 
   static void add_time(const std::string &hash, double time, cl::NDRange global_size,cl::NDRange local_size) {
@@ -165,7 +171,7 @@ public:
     std::set<std::string> blacklist;
     for (auto &filename :
          {blacklist_filename, incompatible_filename, invalid_filename,
-          timing_filename, compileerror_filename}) {
+          timing_filename, compileerror_filename, timeout_filename}) {
       for (auto &values : Csv::loadCsv(filename))
         blacklist.insert(values.front());
     }
