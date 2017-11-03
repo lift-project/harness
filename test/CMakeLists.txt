@@ -1,6 +1,5 @@
 set(TEST_SOURCES
-    test_utils.cpp
-    test_kmeans.cpp)
+    test_utils.cpp)
 
 add_executable (test_all test_all.cpp ${TEST_SOURCES})
 target_link_libraries (test_all libgtest Executor ${OpenCL_LIBRARY})
