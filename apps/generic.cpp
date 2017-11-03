@@ -7,6 +7,7 @@
 #include <queue>
 #include <thread>
 #include <type_traits>
+#include <cstdio>
 
 #include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -76,6 +77,8 @@ void load_text_inputs_and_outputs() {
     auto filename = input_file_folder + "/" + output_file.get();
     read_file_with_size(gold_output, filename, output_size);
   }
+
+  cout << "Inputs loaded." << endl;
 }
 
 void load_binary_inputs_and_outputs() {
@@ -240,6 +243,27 @@ void execute(boost::optional<function<bool(const std::vector<T> &)>> validate,
   OpenCL::executeRun<T>(*r, output_dev, output_size / sizeof(T), validate);
 };
 
+bool check_for_timeout(shared_ptr<Run>& r) {
+  auto hash = r->hash;
+  auto timeout_candidate_file = hash + ".timeout";
+  auto has_timed_out = File::is_file_exist(timeout_candidate_file);
+
+  if (has_timed_out) {
+    File::add_timeout(hash);
+    std::remove(timeout_candidate_file.c_str());
+  } else {
+    std::ofstream outfile(timeout_candidate_file);
+  }
+
+  return has_timed_out;
+}
+
+void clean_timeout(shared_ptr<Run>& r) {
+  auto hash = r->hash;
+  auto timeout_candidate_file = hash + ".timeout";
+  std::remove(timeout_candidate_file.c_str());
+}
+
 template<typename T>
 void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
                  const bool threaded, const bool binary) {
@@ -276,18 +300,29 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
 
     // compilation thread
     auto compilation_thread = std::thread([&] {
+      auto first = true;
       for (auto &r : all_run) {
+
+        if (first && check_for_timeout(r))
+          continue;
+
         if (r->compile(binary)) {
           unique_lock<std::mutex> locker(m);
           ready_queue.push(r);
           ready = true;
           cv.notify_one();
         }
+
+        if (first)
+          clean_timeout(r);
+
+        first = false;
       }
     });
 
     auto execute_thread = std::thread([&] {
       std::shared_ptr<Run> r = nullptr;
+      auto first = true;
       while (!done) {
         {
           std::unique_lock<std::mutex> locker(m);
@@ -302,7 +337,18 @@ void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
             ready_queue.pop();
           }
 
+          auto hash = r->hash;
+          auto timeout_candidate_file = hash + ".timeout";
+
+          if (first && check_for_timeout(r))
+            continue;
+
           execute(optional_validation, input_buffers, output_dev, r);
+
+          if (first)
+            std::remove(timeout_candidate_file.c_str());
+
+          first = false;
         }
       }
     });
@@ -380,7 +426,7 @@ int main(int argc, const char *const *argv) {
       "Timeout to avoid multiple executions")
     ("iterations,i", po::value<int>(&OpenCL::iterations)->default_value(10),
       "Number of iterations for each experiment")
-    ("local-combinations,l", po::value<bool>(&OpenCL::local_combinations)->default_value(false),
+    ("local-combinations,l", po::bool_switch(&OpenCL::local_combinations)->default_value(false),
       "Run different valid combinations of local sizes instead of letting the "
       "implementation choose if the local size is marked '?'.")
     ("l0", po::value<unsigned>(&local_0)->default_value(0),
@@ -393,7 +439,7 @@ int main(int argc, const char *const *argv) {
       "The minimum local size to use when running the experiments")
     ("b,binary", po::value<bool>(&binary)->default_value(false),
       "Load programs as binaries instead of compiling OpenCL-C source.")
-    ("threaded", po::value<bool>(&threaded),
+    ("threaded", po::value<bool>(&threaded)->default_value(true),
       "Use a separate thread for compilation and execution")
     ;
 
