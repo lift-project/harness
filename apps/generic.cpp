@@ -27,7 +27,7 @@ string input_file_folder;
 bool binary_input;
 
 vector<int> size_arguments;
-vector<pair<string, size_t>> inputs;
+vector<tuple<string, size_t, bool>> inputs;
 vector<vector<float>> read_inputs;
 vector<vector<char>> binary_inputs;
 
@@ -63,8 +63,8 @@ void load_text_inputs_and_outputs() {
 
   for (auto &pair : inputs) {
 
-    auto filename = input_file_folder + "/" + pair.first;
-    auto size = pair.second;
+    auto filename = input_file_folder + "/" + get<0>(pair);
+    auto size = get<2>(pair);
 
     vector<float> contents;
 
@@ -89,8 +89,8 @@ void load_binary_inputs_and_outputs() {
 
   for (auto &pair : inputs) {
 
-    auto filename = input_file_folder + "/" + pair.first;
-    auto size = pair.second;
+    auto filename = input_file_folder + "/" + get<0>(pair);
+    auto size = get<1>(pair);
 
     vector<char> contents(size);
 
@@ -125,10 +125,11 @@ void load_configuration(const string &filename) {
 
   for (auto &input : tree.get_child("inputs")) {
 
-    string filename = input.second.get<string>("filename");
-    long size = input.second.get<size_t>("size");
+    auto filename = input.second.get<string>("filename");
+    auto size = input.second.get<size_t>("size");
+    auto buffer = input.second.get<bool>("buffer");
 
-    inputs.push_back({filename, size});
+    inputs.push_back(make_tuple(filename, size, buffer));
   }
 }
 template<typename T>
@@ -226,12 +227,12 @@ void execute(boost::optional<function<bool(const std::vector<T> &)>> validate,
   cl_uint i;
 
   for (i = 0; i < inputs.size(); i++) {
+    auto current_input = inputs[i];
+    auto type = get<0>(current_input);
 
-    auto type = inputs[i].first;
-
-    if (type.find("_") == string::npos)
+    if (!get<2>(current_input))
       if (binary_input)
-        r->getKernel().setArg(i, inputs[i].second, (void*) binary_inputs[i].data());
+        r->getKernel().setArg(i, get<1>(current_input), (void*) binary_inputs[i].data());
       else
         r->getKernel().setArg(i, read_inputs[i].front());
     else
