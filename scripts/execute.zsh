@@ -32,6 +32,7 @@ typeset -A OPTS
 OPTS[-p]=0
 OPTS[-d]=0
 OPTS[-i]=250
+OPTS[-t]=100
 OPTS[--inputs]=$ORIG_DIR/inputs
 
 zparseopts -K -A OPTS p: d: i: -inputs: -program: -config:
@@ -43,6 +44,7 @@ CONFIG=$(realpath $OPTS[--config])
 PLATFORM=$OPTS[-p]
 DEVICE=$OPTS[-d]
 ITERATIONS=$OPTS[-i]
+TIMEOUT=$OPTS[-t]
 
 # Check that program/inputs/config exist
 check_command harness_generic
@@ -61,6 +63,16 @@ then
 else
   SIZE_STRING=$(jq -c '.sizes' $CONFIG | sed -e 's/\[//g' -e 's/\]//g' -e 's/,/_/g')
 fi
+
+TIMEOUT_FILE=$PROGRAM/timeout_$SIZE_STRING
+
+# Is timeout file set?
+if [[ -a $TIMEOUT_FILE ]]
+then
+  TIMEOUT=$(cat $TIMEOUT_FILE)
+fi
+
+echo $TIMEOUT
 
 # Try to execute
 for i in $(seq 1 $ITERATIONS)
@@ -85,7 +97,22 @@ do
 
       cd $LOW_LEVEL
 
-      timeout 1m harness_generic --folder $INPUTS --file $CONFIG -p $PLATFORM -d $DEVICE
+      timeout 1m harness_generic --folder $INPUTS --file $CONFIG -p $PLATFORM -d $DEVICE -t $TIMEOUT
+
+      TIME_FILE=time_$SIZE_STRING.csv
+
+      # Update timeout?
+      if [[ -a $TIME_FILE ]]
+      then
+        CANDIDATE_TIMEOUT=$(cut -d , -f 2 $TIME_FILE | sort -n | head -n 1)
+
+        if [[ $CANDIDATE_TIMEOUT != "" && $CANDIDATE_TIMEOUT -lt $TIMEOUT ]]
+        then
+          TIMEOUT=$CANDIDATE_TIMEOUT
+          echo $TIMEOUT > $TIMEOUT_FILE
+        fi
+      fi
+
     fi
   done
 
