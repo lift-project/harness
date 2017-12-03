@@ -1,9 +1,12 @@
+#include <cstring>
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <iostream>
 #include <condition_variable>
 #include <queue>
 #include <thread>
+#include <type_traits>
 #include <cstdio>
 
 #include <boost/optional.hpp>
@@ -21,13 +24,17 @@ using namespace std;
 
 string input_file_folder;
 
+bool binary_input;
+
 vector<int> size_arguments;
-vector<pair<string, size_t>> inputs;
+vector<tuple<string, size_t, bool>> inputs;
 vector<vector<float>> read_inputs;
+vector<vector<char>> binary_inputs;
 
 size_t output_size;
 boost::optional<string> output_file;
 vector<float> gold_output;
+vector<char> binary_gold_output;
 
 template <typename T>
 void read_file_with_size(vector<T> &contents, const string &filename,
@@ -39,7 +46,7 @@ void read_file_with_size(vector<T> &contents, const string &filename,
   ifstream in(filename);
 
   if (!in.good())
-    return;
+    throw invalid_argument("Missing input file");
 
   while (contents.size() < num_elements) {
     T temp;
@@ -48,16 +55,16 @@ void read_file_with_size(vector<T> &contents, const string &filename,
   }
 }
 
-void load_inputs_and_outputs() {
+void load_text_inputs_and_outputs() {
 
-  cout << "Loading inputs..." << endl;
+  cout << "Loading text inputs..." << endl;
 
   read_inputs.reserve(inputs.size());
 
   for (auto &pair : inputs) {
 
-    auto filename = input_file_folder + "/" + pair.first;
-    auto size = pair.second;
+    auto filename = input_file_folder + "/" + get<0>(pair);
+    auto size = get<2>(pair);
 
     vector<float> contents;
 
@@ -74,6 +81,31 @@ void load_inputs_and_outputs() {
   cout << "Inputs loaded." << endl;
 }
 
+void load_binary_inputs_and_outputs() {
+
+  cout << "Loading binary inputs..." << endl;
+
+  binary_inputs.reserve(inputs.size());
+
+  for (auto &pair : inputs) {
+
+    auto filename = input_file_folder + "/" + get<0>(pair);
+    auto size = get<1>(pair);
+
+    vector<char> contents(size);
+
+    File::load_input(contents, filename);
+
+    binary_inputs.push_back(move(contents));
+  }
+
+  if (output_file) {
+    auto filename = input_file_folder + "/" + output_file.get();
+    binary_gold_output = vector<char>(output_size);
+    File::load_input(binary_gold_output, filename);
+  }
+}
+
 void load_configuration(const string &filename) {
 
   cout << "Loading configuration..." << endl;
@@ -88,32 +120,104 @@ void load_configuration(const string &filename) {
   output_size = tree.get<size_t>("output");
   output_file = tree.get_optional<string>("output_file");
 
+  auto optional_binary = tree.get_optional<bool>("binary");
+  binary_input = optional_binary ? optional_binary.get() : false;
+
   for (auto &input : tree.get_child("inputs")) {
 
-    string filename = input.second.get<string>("filename");
-    long size = input.second.get<size_t>("size");
+    auto filename = input.second.get<string>("filename");
+    auto size = input.second.get<size_t>("size");
+    auto buffer = input.second.get<bool>("buffer");
 
-    inputs.push_back({filename, size});
+    inputs.push_back(make_tuple(filename, size, buffer));
   }
 }
+template<typename T>
+vector<T> get_output_from_binary() {
+  vector<T> correct_type(binary_gold_output.size() / sizeof(T));
 
-bool validate(const std::vector<float> &kernel_output) {
-  // Reference output not provided, ignore validation
-  if (!output_file)
+  memcpy(correct_type.data(), binary_gold_output.data(), binary_gold_output.size());
+
+  return correct_type;
+}
+
+template<typename T>
+vector<T> get_output() {
+
+  if (!binary_input && output_file)
+    throw invalid_argument("Only float non binary outputs are allowed");
+
+  return get_output_from_binary<T>();
+}
+
+template<>
+vector<float> get_output() {
+  if (binary_input)
+    return get_output_from_binary<float>();
+  else
+    return gold_output;
+}
+
+template<typename T>
+bool compare_values(typename enable_if<is_floating_point<T>::value, T>::type x, T y) {
+  if (abs(x - y) > 0.001 * max(abs(x), abs(y)))
+    return false;
+  else
     return true;
+}
 
-  if (gold_output.size() != kernel_output.size())
+template<typename T>
+bool compare_values(typename enable_if<is_integral<T>::value, T>::type x, T y) {
+  return x == y;
+}
+
+template<typename T>
+bool validate(const vector<T> &kernel_output, const vector<T>& expected_output) {
+
+  if (expected_output.size() != kernel_output.size())
     return false;
 
-  for (auto i = 0u; i < gold_output.size(); i++) {
+  for (auto i = 0u; i < expected_output.size(); i++) {
     auto x = gold_output[i];
     auto y = kernel_output[i];
 
-    if (abs(x - y) > 0.0001f * max(abs(x), abs(y)))
+    if (!compare_values(x,y))
       return false;
   }
 
   return true;
+}
+
+vector<cl::Buffer> allocate_input_buffers() {
+
+  vector<cl::Buffer> input_buffers;
+
+  // Allocate input buffers
+  if (binary_input) {
+    for (auto &input : binary_inputs) {
+
+      input_buffers.push_back(OpenCL::alloc(
+            CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input.size(),
+            static_cast<void *>(input.data())));
+    }
+  } else {
+  // TODO: inputs?? mix of buffers and the rest
+  // TODO: Other data types
+    for (auto &input : read_inputs) {
+      input_buffers.push_back(OpenCL::alloc(
+            CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input.size() * sizeof(float),
+            static_cast<void *>(input.data())));
+    }
+  }
+
+  return input_buffers;
+}
+
+void load_inputs() {
+  if (binary_input)
+    load_binary_inputs_and_outputs();
+  else
+    load_text_inputs_and_outputs();
 }
 
 template <typename T>
@@ -123,11 +227,14 @@ void execute(boost::optional<function<bool(const std::vector<T> &)>> validate,
   cl_uint i;
 
   for (i = 0; i < inputs.size(); i++) {
+    auto current_input = inputs[i];
+    auto type = get<0>(current_input);
 
-    auto type = inputs[i].first;
-
-    if (type.find("_") == string::npos)
-      r->getKernel().setArg(i, read_inputs[i].front());
+    if (!get<2>(current_input))
+      if (binary_input)
+        r->getKernel().setArg(i, get<1>(current_input), (void*) binary_inputs[i].data());
+      else
+        r->getKernel().setArg(i, read_inputs[i].front());
     else
       r->getKernel().setArg(i, input_buffers[i]);
   }
@@ -158,30 +265,27 @@ void clean_timeout(shared_ptr<Run>& r) {
   std::remove(timeout_candidate_file.c_str());
 }
 
+template<typename T>
 void run_harness(std::vector<std::shared_ptr<Run>> &all_run,
                  const bool threaded, const bool binary) {
 
   if (binary)
     cout << "Using precompiled binaries" << endl;
 
-  load_inputs_and_outputs();
+  load_inputs();
 
-  // TODO: inputs?? mix of buffers and the rest
-  // TODO: Other data types
-  vector<cl::Buffer> input_buffers;
+  auto input_buffers = allocate_input_buffers();
+  auto expected_output = get_output<T>();
 
-  // Allocate input buffers
-  for (auto &input : read_inputs) {
-    input_buffers.push_back(OpenCL::alloc(
-      CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, input.size() * sizeof(float),
-      static_cast<void *>(input.data())));
-  }
+  boost::optional<function<bool(const vector<T> &)>> optional_validation;
 
-  boost::optional<function<bool(const vector<float> &)>> optional_validation;
+  auto validation_function = [&expected_output] (const vector<T>& kernel_output) {
+    return validate(kernel_output, expected_output);
+  };
 
   if (output_file)
     optional_validation =
-        boost::optional<function<bool(const vector<float> &)>>(validate);
+      boost::optional<function<bool(const vector<T> &)>>(validation_function);
 
   // Allocating the output buffer
   cl::Buffer output_dev = OpenCL::alloc(CL_MEM_READ_WRITE, output_size);
@@ -384,6 +488,13 @@ int main(int argc, const char *const *argv) {
 
   OpenCL::init(platform, device, OpenCL::iterations);
 
-  run_harness(all_run, threaded, binary);
+  if (!output_file)
+    run_harness<char>(all_run, threaded, binary);
+  else if (output_file.get().find("float") != string::npos)
+    run_harness<float>(all_run, threaded, binary);
+  else if (output_file.get().find("int") != string::npos)
+    run_harness<int>(all_run, threaded, binary);
+  else
+    throw invalid_argument("Unknown output type!");
 }
 

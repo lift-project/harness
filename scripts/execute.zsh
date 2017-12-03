@@ -89,6 +89,7 @@ do
     if [[ ! -a $DONE_FILE ]]
     then
 
+      date
       echo "Platform: ${PLATFORM}, Device: ${DEVICE}, ${CONFIG:t}"
       echo ${LOW_LEVEL:t}
 

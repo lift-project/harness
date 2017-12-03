@@ -1,4 +1,4 @@
-kernel void KERNEL(global float* input, global float* output, int N) {
+kernel void KERNEL(global int* input, global int* output, int N) {
 
   int gid = get_global_id(0);
 

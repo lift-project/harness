@@ -1,0 +1,13 @@
+{
+  "kernel" : "example",
+  "binary" : true,
+  "inputs" : [ {
+    "filename" : "8_int.binary",
+    "size" : 32
+  }, {
+    "filename" : "int.binary",
+    "size" : 4
+  } ],
+  "output" : 32,
+  "sizes" : [ 8 ]
+}

@@ -51,7 +51,9 @@ endfunction()
 
 include_directories(apps)
 
-add_app(kmeans)
+add_executable(convert_to_binary apps/convert_to_binary.cpp)
+target_link_libraries(convert_to_binary Executor)
+
 add_app(generic)
 add_app(stencil)
 add_app(hotspot)
