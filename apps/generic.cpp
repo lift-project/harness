@@ -64,7 +64,7 @@ void load_text_inputs_and_outputs() {
   for (auto &pair : inputs) {
 
     auto filename = input_file_folder + "/" + get<0>(pair);
-    auto size = get<2>(pair);
+    auto size = get<1>(pair);
 
     vector<float> contents;
 
